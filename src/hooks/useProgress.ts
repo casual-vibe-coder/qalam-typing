@@ -62,9 +62,37 @@ function richerOf(a: Progress, b: Progress): Progress {
   return a.xp >= b.xp ? a : b;
 }
 
-export function useProgress(userId: string | null) {
+export function useProgress(userId: string | null, username: string | null) {
   const [progress, setProgress] = useState<Progress>(loadLocal);
   const syncedForUser = useRef<string | null>(null);
+
+  // Aggregate + upsert the public leaderboard row. Skipped until a username
+  // is chosen (see AuthModal) — no username means nothing to show publicly.
+  const pushLeaderboard = useCallback(
+    (p: Progress) => {
+      if (!isSupabaseConfigured || !userId || !username) return;
+      const results = Object.values(p.lessons);
+      const bestWpm = results.reduce((max, r) => Math.max(max, r.bestWpm), 0);
+      const bestAccuracy = results.reduce((max, r) => Math.max(max, r.bestAccuracy), 0);
+      supabase.from("qalam_leaderboard").upsert({
+        user_id: userId,
+        username,
+        xp: p.xp,
+        lessons_completed: results.length,
+        best_wpm: bestWpm,
+        best_accuracy: bestAccuracy,
+        updated_at: new Date().toISOString(),
+      });
+    },
+    [userId, username]
+  );
+
+  // Push once whenever a username becomes available — covers both "just
+  // claimed one" and "signed in elsewhere, one already existed".
+  useEffect(() => {
+    pushLeaderboard(progress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
 
   useEffect(() => {
     saveLocal(progress);
@@ -90,8 +118,9 @@ export function useProgress(userId: string | null) {
     (p: Progress) => {
       if (!isSupabaseConfigured || !userId) return;
       supabase.from("qalam_progress").upsert({ user_id: userId, data: p, updated_at: new Date().toISOString() });
+      pushLeaderboard(p);
     },
-    [userId]
+    [userId, pushLeaderboard]
   );
 
   const recordLesson = useCallback(

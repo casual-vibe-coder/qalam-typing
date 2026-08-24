@@ -4,15 +4,18 @@ import { LessonPathScreen } from "./screens/LessonPathScreen";
 import { LessonScreen } from "./screens/LessonScreen";
 import { PracticeScreen } from "./screens/PracticeScreen";
 import { KeyboardSetupScreen } from "./screens/KeyboardSetupScreen";
+import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { AuthModal } from "./components/AuthModal";
 import { useAuth } from "./hooks/useAuth";
 import { useProgress } from "./hooks/useProgress";
+import { useProfile } from "./hooks/useProfile";
 
 type View =
   | { name: "landing" }
   | { name: "path" }
   | { name: "lesson"; id: string }
   | { name: "practice" }
+  | { name: "leaderboard" }
   | { name: "setup"; from: "landing" | "path" };
 
 const AUTH_GATE_LESSON_COUNT = 6; // prompt once the home row is done — a real "I'm already typing real words" moment
@@ -22,7 +25,11 @@ function App() {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { session, signOut, isConfigured } = useAuth();
-  const { progress, recordLesson, completedCount, isUnlocked, isUnitComplete } = useProgress(session?.user.id ?? null);
+  const { username } = useProfile(session?.user.id ?? null);
+  const { progress, recordLesson, completedCount, isUnlocked, isUnitComplete } = useProgress(
+    session?.user.id ?? null,
+    username
+  );
 
   return (
     <div className="min-h-screen">
@@ -42,6 +49,7 @@ function App() {
           canSignIn={isConfigured}
           onStartLesson={(id) => setView({ name: "lesson", id })}
           onOpenPractice={() => setView({ name: "practice" })}
+          onOpenLeaderboard={() => setView({ name: "leaderboard" })}
           onSetupKeyboard={() => setView({ name: "setup", from: "path" })}
           onSignIn={() => setShowAuthModal(true)}
           onSignOut={signOut}
@@ -72,6 +80,10 @@ function App() {
 
       {view.name === "practice" && (
         <PracticeScreen onExit={() => setView({ name: "path" })} onNeedKeyboardHelp={() => setView({ name: "setup", from: "path" })} />
+      )}
+
+      {view.name === "leaderboard" && (
+        <LeaderboardScreen currentUserId={session?.user.id ?? null} onExit={() => setView({ name: "path" })} />
       )}
 
       {showAuthGate && (

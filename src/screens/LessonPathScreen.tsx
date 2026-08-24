@@ -18,6 +18,7 @@ interface Props {
   canSignIn: boolean;
   onStartLesson: (id: string) => void;
   onOpenPractice: () => void;
+  onOpenLeaderboard: () => void;
   onSetupKeyboard: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
@@ -31,6 +32,7 @@ export function LessonPathScreen({
   canSignIn,
   onStartLesson,
   onOpenPractice,
+  onOpenLeaderboard,
   onSetupKeyboard,
   onSignIn,
   onSignOut,
@@ -76,7 +78,7 @@ export function LessonPathScreen({
 
       <button
         onClick={onOpenPractice}
-        className="w-full text-left rounded-2xl p-5 mb-8 border-2 transition-transform hover:scale-[1.02]"
+        className="w-full text-left rounded-2xl p-5 mb-3 border-2 transition-transform hover:scale-[1.02]"
         style={{ borderColor: "var(--color-gold)", background: "linear-gradient(135deg,#fff,#fdf6e3)" }}
       >
         <div className="flex items-center justify-between">
@@ -87,6 +89,22 @@ export function LessonPathScreen({
             <div className="text-sm opacity-70">Type real hadith and short surahs — no lock, try it now</div>
           </div>
           <span className="text-2xl">📖</span>
+        </div>
+      </button>
+
+      <button
+        onClick={onOpenLeaderboard}
+        className="w-full text-left rounded-2xl p-5 mb-8 border-2 transition-transform hover:scale-[1.02]"
+        style={{ borderColor: "var(--color-nur)", background: "linear-gradient(135deg,#fff,#eef7f2)" }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-extrabold text-lg" style={{ color: "var(--color-nur)" }}>
+              Leaderboard
+            </div>
+            <div className="text-sm opacity-70">See how you rank against everyone else</div>
+          </div>
+          <span className="text-2xl">🏆</span>
         </div>
       </button>
 
