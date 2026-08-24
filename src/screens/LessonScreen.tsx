@@ -37,7 +37,9 @@ export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }:
   const learnedBefore = useMemo(() => learnedGlyphs(idx - 1), [idx]);
   const exercises = useMemo(() => buildLessonExercises(lesson, learned, learnedBefore), [lesson, learned, learnedBefore]);
 
-  const [showIntro, setShowIntro] = useState(true);
+  // Mastery lessons introduce no new key, so there's nothing to show on an
+  // intro page — go straight to typing, like a real typing test.
+  const [showIntro, setShowIntro] = useState(lesson.stage !== "mastery");
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [results, setResults] = useState<TypingSessionResult[]>([]);
   const [awaitingContinue, setAwaitingContinue] = useState(false);

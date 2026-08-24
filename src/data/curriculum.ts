@@ -15,7 +15,7 @@ export interface GlyphIntro {
 
 export interface Lesson {
   id: string;
-  stage: "home" | "top" | "bottom" | "extra" | "tashkeel" | "numbers";
+  stage: "home" | "top" | "bottom" | "extra" | "tashkeel" | "numbers" | "mastery";
   title: string;
   subtitle: string;
   newGlyphs: GlyphIntro[];
@@ -84,6 +84,13 @@ export const LESSONS: Lesson[] = [
     subtitle: "١٢٣ 0-9",
     newGlyphs: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((k) => g(k)),
   },
+
+  // --- Mastery: everything's been taught — now type real, full-length
+  // vocalized Hadith text (see lib/lessonContent.ts buildMasteryExercises,
+  // data/hadiths.ts). No new keys introduced, so newGlyphs stays empty.
+  { id: "m1", stage: "mastery", title: "Mastery I", subtitle: "أحاديث قصيرة", newGlyphs: [] },
+  { id: "m2", stage: "mastery", title: "Mastery II", subtitle: "أحاديث متوسطة", newGlyphs: [] },
+  { id: "m3", stage: "mastery", title: "Mastery III", subtitle: "أحاديث طويلة", newGlyphs: [] },
 ];
 
 export function lessonIndex(id: string): number {

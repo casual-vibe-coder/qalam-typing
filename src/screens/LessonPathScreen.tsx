@@ -8,6 +8,7 @@ const STAGE_LABELS: Record<string, string> = {
   extra: "One more letter",
   tashkeel: "Hamza & harakat",
   numbers: "Numbers",
+  mastery: "Mastery — real Hadith",
 };
 
 interface Props {
@@ -138,7 +139,7 @@ export function LessonPathScreen({
                   boxShadow: isNext ? "0 0 0 5px rgba(201,154,59,0.25)" : "none",
                 }}
               >
-                {result ? "✓" : unlocked ? lesson.subtitle.split(" ")[0] : "🔒"}
+                {result ? "✓" : !unlocked ? "🔒" : lesson.stage === "mastery" ? "📖" : lesson.subtitle.split(" ")[0]}
                 {result && (
                   <span className="absolute -bottom-2 text-[10px] font-bold" style={{ color: "var(--color-gold-dark)" }}>
                     {"⭐".repeat(result.stars)}

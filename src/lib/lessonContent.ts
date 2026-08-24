@@ -1,6 +1,7 @@
 import { ALL_KEYS } from "../data/keyboard";
 import type { GlyphIntro, Lesson } from "../data/curriculum";
 import { WORD_BANK, type BankWord } from "../data/wordBank";
+import { HADITHS } from "../data/hadiths";
 import { isHarakah, isTypeableWith, shuffled, toArabicIndicDigits } from "./arabic";
 
 function glyphOf(intro: GlyphIntro): string {
@@ -32,17 +33,17 @@ function repeatTo(tokens: string[], minTokens: number): string[] {
 /** Level 1: pure repetition of only the brand-new key(s) — builds raw finger-position memory. */
 function buildKeyDrill(newGlyphs: string[], seed: number): string {
   if (newGlyphs.length === 1) {
-    return Array(24).fill(newGlyphs[0]).join(" ");
+    return Array(40).fill(newGlyphs[0]).join(" ");
   }
   const [a, b] = newGlyphs;
-  const blockA = Array(8).fill(a).join(" ");
-  const blockB = Array(8).fill(b).join(" ");
-  const alternating = repeatTo(shuffled([a, b], seed), 16).join(" ");
+  const blockA = Array(16).fill(a).join(" ");
+  const blockB = Array(16).fill(b).join(" ");
+  const alternating = repeatTo(shuffled([a, b], seed), 28).join(" ");
   return [blockA, blockB, alternating].join(" ");
 }
 
 /** Level 2: new key(s) still dominant, combined with review letters — plausible combos, not real words yet. */
-function buildMixedDrill(newGlyphs: string[], learnedBefore: string[], seed: number, count = 22): string {
+function buildMixedDrill(newGlyphs: string[], learnedBefore: string[], seed: number, count = 36): string {
   const pool = learnedBefore.length > 0 ? shuffled(learnedBefore, seed).slice(0, 8) : newGlyphs;
   const combos: string[] = [];
   for (const g of newGlyphs) {
@@ -65,7 +66,7 @@ function buildRealWordsExercise(
 ): string {
   const eligible = WORD_BANK.filter((w) => isTypeableWith(w.ar, learnedIncludingNew));
   const fresh = eligible.filter((w) => [...w.ar].some((ch) => newGlyphs.includes(ch)));
-  const guaranteedFresh = shuffled(fresh, seed + 7).slice(0, Math.min(4, fresh.length));
+  const guaranteedFresh = shuffled(fresh, seed + 7).slice(0, Math.min(6, fresh.length));
   const guaranteed = new Set(guaranteedFresh);
   const rest = shuffled(eligible, seed + 13).filter((w) => !guaranteed.has(w));
   const words = [...guaranteedFresh, ...rest].slice(0, wordCount);
@@ -73,7 +74,7 @@ function buildRealWordsExercise(
 }
 
 /** Fallback for early lessons where the word bank has nothing typeable yet — a full review mix of every letter learned so far, not just the new one(s). */
-function buildFullMixDrill(learnedIncludingNew: Set<string>, seed: number, count = 24): string {
+function buildFullMixDrill(learnedIncludingNew: Set<string>, seed: number, count = 32): string {
   const letters = [...learnedIncludingNew];
   if (letters.length < 2) return letters.join(" ");
   const combos: string[] = [];
@@ -93,16 +94,16 @@ function buildTashkeelExercises(newGlyphs: string[], learnedBefore: Set<string>)
   const anchorPool = anchors.length > 0 ? anchors : ["ب", "ك", "ن"]; // taught in lesson 1 — safe fallback
 
   const level1Combos = newGlyphs.flatMap((g) => anchorPool.map((a) => a + g));
-  const level1 = repeatTo(shuffled(level1Combos, newGlyphs.length + 11), Math.max(16, level1Combos.length)).join(
+  const level1 = repeatTo(shuffled(level1Combos, newGlyphs.length + 11), Math.max(28, level1Combos.length)).join(
     " "
   );
 
   const level2Combos = newGlyphs.flatMap((g) => anchorPool.map((a) => a + g + a));
-  const level2 = repeatTo(shuffled(level2Combos, newGlyphs.length + 17), 20).join(" ");
+  const level2 = repeatTo(shuffled(level2Combos, newGlyphs.length + 17), 32).join(" ");
 
   const allMarks = [...learnedMarks, ...newGlyphs];
   const level3Combos = allMarks.flatMap((g) => anchorPool.map((a) => a + g));
-  const level3 = repeatTo(shuffled(level3Combos, newGlyphs.length + 29), 24).join(" ");
+  const level3 = repeatTo(shuffled(level3Combos, newGlyphs.length + 29), 36).join(" ");
 
   return [
     { label: "Level 1 · New mark", target: level1 },
@@ -113,9 +114,15 @@ function buildTashkeelExercises(newGlyphs: string[], learnedBefore: Set<string>)
 
 /** Numbers stage: Arabic-Indic digits throughout, matching the number-row keys taught (see data/keyboard.ts). */
 function buildNumberExercises(): Exercise[] {
-  const level1 = toArabicIndicDigits("0 1 2 3 4 5 6 7 8 9 9 8 7 6 5 4 3 2 1 0 0 1 2 3 4 5 6 7 8 9");
-  const level2 = toArabicIndicDigits("10 20 30 40 50 60 70 80 90 100 12 34 56 78 90 21 43 65 87 09 15 60");
-  const level3 = toArabicIndicDigits("2026 1445 10 500 1974 27 99 2025 1000 365 24 60 12 40 100 2030 7 300");
+  const level1 = toArabicIndicDigits(
+    "0 1 2 3 4 5 6 7 8 9 9 8 7 6 5 4 3 2 1 0 0 1 2 3 4 5 6 7 8 9 1 3 5 7 9 0 2 4 6 8"
+  );
+  const level2 = toArabicIndicDigits(
+    "10 20 30 40 50 60 70 80 90 100 12 34 56 78 90 21 43 65 87 09 15 60 11 22 33 44 55 66 77 88"
+  );
+  const level3 = toArabicIndicDigits(
+    "2026 1445 10 500 1974 27 99 2025 1000 365 24 60 12 40 100 2030 7 300 1990 45 200 3 800 15 90"
+  );
   return [
     { label: "Level 1 · Digits", target: level1 },
     { label: "Level 2 · Two-digit numbers", target: level2 },
@@ -123,15 +130,35 @@ function buildNumberExercises(): Exercise[] {
   ];
 }
 
+// Mastery stage: everything's been taught by now, so exercises switch to
+// real, full-length vocalized Hadith text instead of constrained drills —
+// each of the 3 mastery lessons pulls a different, deterministic slice of
+// HADITHS, growing from one hadith to several concatenated together.
+const MASTERY_SLICES: Record<string, number[][]> = {
+  m1: [[0], [0, 1], [0, 1, 2]],
+  m2: [[3], [3, 4], [3, 4, 5]],
+  m3: [[6, 7], [6, 7, 8], [6, 7, 8, 9]],
+};
+
+function buildMasteryExercises(lessonId: string): Exercise[] {
+  const slices = MASTERY_SLICES[lessonId] ?? [[0], [0, 1], [0, 1, 2]];
+  const labels = ["Level 1 · One hadith", "Level 2 · Two hadiths", "Level 3 · Full passage"];
+  return slices.map((indices, i) => ({
+    label: labels[i] ?? `Level ${i + 1}`,
+    target: indices.map((idx) => HADITHS[idx % HADITHS.length].ar).join("   "),
+  }));
+}
+
 export function buildLessonExercises(
   lesson: Lesson,
   learnedIncludingNew: Set<string>,
   learnedBefore: Set<string>,
-  wordCount = 24
+  wordCount = 30
 ): Exercise[] {
   const newGlyphs = lesson.newGlyphs.map(glyphOf).filter(Boolean);
   const seed = lesson.id.length + lesson.id.charCodeAt(0);
 
+  if (lesson.stage === "mastery") return buildMasteryExercises(lesson.id);
   if (lesson.stage === "tashkeel") return buildTashkeelExercises(newGlyphs, learnedBefore);
   if (lesson.stage === "numbers") return buildNumberExercises();
 
