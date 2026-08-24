@@ -1,0 +1,156 @@
+import { ALL_KEYS } from "../data/keyboard";
+import type { GlyphIntro, Lesson } from "../data/curriculum";
+import { WORD_BANK, type BankWord } from "../data/wordBank";
+import { isHarakah, isTypeableWith, shuffled, toArabicIndicDigits } from "./arabic";
+
+function glyphOf(intro: GlyphIntro): string {
+  const key = ALL_KEYS.find((k) => k.id === intro.keyId);
+  if (!key) return "";
+  return intro.shift ? (key.shift ?? "") : key.base;
+}
+
+export interface Exercise {
+  label: string;
+  target: string;
+}
+
+// Every lesson now walks through 3 fixed levels of increasing length and
+// complexity (per instructor feedback: lessons finished in one sitting
+// where a comparable course took a week — these need real substance):
+//   Level 1 — only the brand-new key(s), pure repetition.
+//   Level 2 — the brand-new key(s), still dominant, mixed with review letters.
+//   Level 3 — everything learned so far, unrestricted (real words / full mix).
+
+/** Repeat token(s) out to at least `minTokens`, cycling if there aren't enough unique ones. */
+function repeatTo(tokens: string[], minTokens: number): string[] {
+  if (tokens.length === 0) return [];
+  const out: string[] = [];
+  for (let i = 0; i < minTokens; i++) out.push(tokens[i % tokens.length]);
+  return out;
+}
+
+/** Level 1: pure repetition of only the brand-new key(s) — builds raw finger-position memory. */
+function buildKeyDrill(newGlyphs: string[], seed: number): string {
+  if (newGlyphs.length === 1) {
+    return Array(24).fill(newGlyphs[0]).join(" ");
+  }
+  const [a, b] = newGlyphs;
+  const blockA = Array(8).fill(a).join(" ");
+  const blockB = Array(8).fill(b).join(" ");
+  const alternating = repeatTo(shuffled([a, b], seed), 16).join(" ");
+  return [blockA, blockB, alternating].join(" ");
+}
+
+/** Level 2: new key(s) still dominant, combined with review letters — plausible combos, not real words yet. */
+function buildMixedDrill(newGlyphs: string[], learnedBefore: string[], seed: number, count = 22): string {
+  const pool = learnedBefore.length > 0 ? shuffled(learnedBefore, seed).slice(0, 8) : newGlyphs;
+  const combos: string[] = [];
+  for (const g of newGlyphs) {
+    for (const other of pool) {
+      combos.push(g + other);
+      combos.push(other + g);
+    }
+    combos.push(g + g);
+    combos.push(g + g + g);
+  }
+  return repeatTo(shuffled(combos, seed + 3), count).join(" ");
+}
+
+/** Level 3: real words drawn from everything learned so far — a handful guaranteed to use the new key(s), the rest a free mix. */
+function buildRealWordsExercise(
+  newGlyphs: string[],
+  learnedIncludingNew: Set<string>,
+  seed: number,
+  wordCount: number
+): string {
+  const eligible = WORD_BANK.filter((w) => isTypeableWith(w.ar, learnedIncludingNew));
+  const fresh = eligible.filter((w) => [...w.ar].some((ch) => newGlyphs.includes(ch)));
+  const guaranteedFresh = shuffled(fresh, seed + 7).slice(0, Math.min(4, fresh.length));
+  const guaranteed = new Set(guaranteedFresh);
+  const rest = shuffled(eligible, seed + 13).filter((w) => !guaranteed.has(w));
+  const words = [...guaranteedFresh, ...rest].slice(0, wordCount);
+  return words.map((w) => w.ar).join(" ");
+}
+
+/** Fallback for early lessons where the word bank has nothing typeable yet — a full review mix of every letter learned so far, not just the new one(s). */
+function buildFullMixDrill(learnedIncludingNew: Set<string>, seed: number, count = 24): string {
+  const letters = [...learnedIncludingNew];
+  if (letters.length < 2) return letters.join(" ");
+  const combos: string[] = [];
+  for (let i = 0; i < letters.length; i++) {
+    for (let j = 0; j < letters.length; j++) {
+      if (i !== j) combos.push(letters[i] + letters[j]);
+    }
+  }
+  return repeatTo(shuffled(combos, seed + 19), count).join(" ");
+}
+
+/** Tashkeel stage: same 3-level shape, but anchored on consonants learned so far instead of a fixed set. */
+function buildTashkeelExercises(newGlyphs: string[], learnedBefore: Set<string>): Exercise[] {
+  const learned = [...learnedBefore];
+  const anchors = learned.filter((ch) => !isHarakah(ch));
+  const learnedMarks = learned.filter(isHarakah);
+  const anchorPool = anchors.length > 0 ? anchors : ["ب", "ك", "ن"]; // taught in lesson 1 — safe fallback
+
+  const level1Combos = newGlyphs.flatMap((g) => anchorPool.map((a) => a + g));
+  const level1 = repeatTo(shuffled(level1Combos, newGlyphs.length + 11), Math.max(16, level1Combos.length)).join(
+    " "
+  );
+
+  const level2Combos = newGlyphs.flatMap((g) => anchorPool.map((a) => a + g + a));
+  const level2 = repeatTo(shuffled(level2Combos, newGlyphs.length + 17), 20).join(" ");
+
+  const allMarks = [...learnedMarks, ...newGlyphs];
+  const level3Combos = allMarks.flatMap((g) => anchorPool.map((a) => a + g));
+  const level3 = repeatTo(shuffled(level3Combos, newGlyphs.length + 29), 24).join(" ");
+
+  return [
+    { label: "Level 1 · New mark", target: level1 },
+    { label: "Level 2 · Across anchors", target: level2 },
+    { label: "Level 3 · Everything so far", target: level3 },
+  ];
+}
+
+/** Numbers stage: Arabic-Indic digits throughout, matching the number-row keys taught (see data/keyboard.ts). */
+function buildNumberExercises(): Exercise[] {
+  const level1 = toArabicIndicDigits("0 1 2 3 4 5 6 7 8 9 9 8 7 6 5 4 3 2 1 0 0 1 2 3 4 5 6 7 8 9");
+  const level2 = toArabicIndicDigits("10 20 30 40 50 60 70 80 90 100 12 34 56 78 90 21 43 65 87 09 15 60");
+  const level3 = toArabicIndicDigits("2026 1445 10 500 1974 27 99 2025 1000 365 24 60 12 40 100 2030 7 300");
+  return [
+    { label: "Level 1 · Digits", target: level1 },
+    { label: "Level 2 · Two-digit numbers", target: level2 },
+    { label: "Level 3 · Real numbers", target: level3 },
+  ];
+}
+
+export function buildLessonExercises(
+  lesson: Lesson,
+  learnedIncludingNew: Set<string>,
+  learnedBefore: Set<string>,
+  wordCount = 24
+): Exercise[] {
+  const newGlyphs = lesson.newGlyphs.map(glyphOf).filter(Boolean);
+  const seed = lesson.id.length + lesson.id.charCodeAt(0);
+
+  if (lesson.stage === "tashkeel") return buildTashkeelExercises(newGlyphs, learnedBefore);
+  if (lesson.stage === "numbers") return buildNumberExercises();
+
+  const wordsTarget = buildRealWordsExercise(newGlyphs, learnedIncludingNew, seed, wordCount);
+  const level3Target = wordsTarget.trim().length > 0 ? wordsTarget : buildFullMixDrill(learnedIncludingNew, seed);
+
+  return [
+    { label: "Level 1 · New letters", target: buildKeyDrill(newGlyphs, seed) },
+    { label: "Level 2 · Mostly new", target: buildMixedDrill(newGlyphs, [...learnedBefore], seed) },
+    { label: "Level 3 · Everything so far", target: level3Target },
+  ];
+}
+
+export function wordsUsedIn(lesson: Lesson, learned: Set<string>, wordCount = 12): BankWord[] {
+  const newGlyphs = lesson.newGlyphs.map(glyphOf).filter(Boolean);
+  const eligible = WORD_BANK.filter((w) => isTypeableWith(w.ar, learned));
+  const fresh = eligible.filter((w) => [...w.ar].some((ch) => newGlyphs.includes(ch)));
+  const review = eligible.filter((w) => !fresh.includes(w));
+  return shuffled(fresh, lesson.id.length + 7)
+    .concat(shuffled(review, lesson.id.length + 13))
+    .slice(0, wordCount);
+}
