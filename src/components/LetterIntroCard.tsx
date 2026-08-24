@@ -62,8 +62,8 @@ export function LetterIntroCard({ newGlyphs, learned, onStart }: Props) {
                 }
               >
                 {isBigBatch
-                  ? `"${key.id}" key`
-                  : `Press the "${key.id}" key${shift ? " + Shift" : ""} — ${FINGER_LABELS[key.finger]}`}
+                  ? `"${key.id.toUpperCase()}" key`
+                  : `Press the "${key.id.toUpperCase()}" key${shift ? " + Shift" : ""} — ${FINGER_LABELS[key.finger]}`}
               </div>
             </div>
           </div>

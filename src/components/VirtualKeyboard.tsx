@@ -32,6 +32,14 @@ export function VirtualKeyboard({ learned, targetChar, highlightGlyphs }: Props)
                   opacity: baseKnown || shiftKnown || isActive ? 1 : 0.45,
                 }}
               >
+                {/* The physical key label — this is an English keyboard with no Arabic
+                    stickers, so this is the only way to know which key to actually press. */}
+                <span
+                  className="absolute top-0.5 left-1 text-[8px] font-bold uppercase leading-none"
+                  style={{ color: isActive ? color : "var(--color-ink)", opacity: isActive ? 0.9 : 0.45 }}
+                >
+                  {key.id}
+                </span>
                 {key.shift && (
                   <span
                     className="text-[10px] leading-none"
