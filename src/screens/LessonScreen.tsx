@@ -153,9 +153,22 @@ export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }:
         ))}
       </div>
 
-      <div className="mb-6">
+      <div className="flex items-center justify-center gap-4 mb-6">
         <StatsBar errors={liveErrors} progressPct={progressPct} />
+        <button
+          onClick={reset}
+          title="Clear what you've typed and start this level over"
+          className="text-xs font-bold shrink-0 opacity-60 hover:opacity-100 underline"
+          style={{ color: "var(--color-ink)" }}
+        >
+          ↺ Start over
+        </button>
       </div>
+      {liveErrors > 0 && typed.length >= exercise.target.length && (
+        <p className="text-center text-xs mb-4" style={{ color: "var(--color-clay)" }}>
+          There's a mistake hiding in what you've typed — backspace to fix it, or hit "Start over".
+        </p>
+      )}
 
       {wrongLanguageSuspected && <LanguageWarningBanner onNeedHelp={onNeedKeyboardHelp} />}
 

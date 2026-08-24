@@ -30,15 +30,17 @@ function repeatTo(tokens: string[], minTokens: number): string[] {
   return out;
 }
 
-/** Level 1: pure repetition of only the brand-new key(s) — builds raw finger-position memory. */
+/** Level 1: pure repetition of only the brand-new key(s) — builds raw finger-position memory.
+ * Kept shorter than the other levels on purpose: a single wrong keystroke buried in a long
+ * run of one identical character is hard to spot and fix (see "Start over" in LessonScreen). */
 function buildKeyDrill(newGlyphs: string[], seed: number): string {
   if (newGlyphs.length === 1) {
-    return Array(40).fill(newGlyphs[0]).join(" ");
+    return Array(28).fill(newGlyphs[0]).join(" ");
   }
   const [a, b] = newGlyphs;
-  const blockA = Array(16).fill(a).join(" ");
-  const blockB = Array(16).fill(b).join(" ");
-  const alternating = repeatTo(shuffled([a, b], seed), 28).join(" ");
+  const blockA = Array(12).fill(a).join(" ");
+  const blockB = Array(12).fill(b).join(" ");
+  const alternating = repeatTo(shuffled([a, b], seed), 20).join(" ");
   return [blockA, blockB, alternating].join(" ");
 }
 

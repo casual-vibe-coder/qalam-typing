@@ -112,7 +112,7 @@ function PracticeSession({
   onNeedKeyboardHelp: () => void;
 }) {
   const [result, setResult] = useState<TypingSessionResult | null>(null);
-  const { typed, onChange, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } = useTypingSession(
+  const { typed, onChange, reset, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } = useTypingSession(
     item.ar,
     (r) => setResult(r)
   );
@@ -147,9 +147,22 @@ function PracticeSession({
         </div>
       ) : (
         <>
-          <div className="mb-4">
+          <div className="flex items-center justify-center gap-4 mb-4">
             <StatsBar errors={liveErrors} progressPct={progressPct} />
+            <button
+              onClick={reset}
+              title="Clear what you've typed and start over"
+              className="text-xs font-bold shrink-0 opacity-60 hover:opacity-100 underline"
+              style={{ color: "var(--color-ink)" }}
+            >
+              ↺ Start over
+            </button>
           </div>
+          {liveErrors > 0 && typed.length >= item.ar.length && (
+            <p className="text-center text-xs mb-4" style={{ color: "var(--color-clay)" }}>
+              There's a mistake hiding in what you've typed — backspace to fix it, or hit "Start over".
+            </p>
+          )}
           {wrongLanguageSuspected && <LanguageWarningBanner onNeedHelp={onNeedKeyboardHelp} />}
           <div className="mb-6">
             <TypingBox target={item.ar} typed={typed} statuses={charStatuses} onChange={onChange} />
