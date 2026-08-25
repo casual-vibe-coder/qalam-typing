@@ -27,21 +27,27 @@ export interface KeyDef {
 }
 
 export const KEYBOARD_ROWS: KeyDef[][] = [
-  // Number row — base glyphs are Arabic-Indic digits (١٢٣...), which is what
-  // the number row actually produces on a real Arabic keyboard/IME; Western
-  // digits sit on Shift instead, same position as the English layout.
+  // Number row — verified directly against Microsoft's Windows Arabic (101)
+  // reference layout (learn.microsoft.com/en-us/globalization/keyboards/kbda1):
+  // the base (unshifted) row types Western digits, same as the English
+  // layout; Shift produces the symbol row (!@#$...), not Arabic-Indic digits.
+  // Real Arabic-Indic numerals (١٢٣...) aren't reachable from this layout at
+  // all — they're a Windows "digit substitution" *display* setting, not a
+  // keystroke — so we render them for reading only (see toDisplayText in
+  // TypingBox.tsx) while the actual target/comparison stays Western digits,
+  // matching what every real keyboard in this layout actually sends.
   [
     { id: "`", row: 0, finger: "l-pinky", base: "ذ", shift: "ّ" },
-    { id: "1", row: 0, finger: "l-pinky", base: "١", shift: "1" },
-    { id: "2", row: 0, finger: "l-ring", base: "٢", shift: "2" },
-    { id: "3", row: 0, finger: "l-middle", base: "٣", shift: "3" },
-    { id: "4", row: 0, finger: "l-index", base: "٤", shift: "4" },
-    { id: "5", row: 0, finger: "l-index", base: "٥", shift: "5" },
-    { id: "6", row: 0, finger: "r-index", base: "٦", shift: "6" },
-    { id: "7", row: 0, finger: "r-index", base: "٧", shift: "7" },
-    { id: "8", row: 0, finger: "r-middle", base: "٨", shift: "8" },
-    { id: "9", row: 0, finger: "r-ring", base: "٩", shift: "9" },
-    { id: "0", row: 0, finger: "r-pinky", base: "٠", shift: "0" },
+    { id: "1", row: 0, finger: "l-pinky", base: "1", shift: "!" },
+    { id: "2", row: 0, finger: "l-ring", base: "2", shift: "@" },
+    { id: "3", row: 0, finger: "l-middle", base: "3", shift: "#" },
+    { id: "4", row: 0, finger: "l-index", base: "4", shift: "$" },
+    { id: "5", row: 0, finger: "l-index", base: "5", shift: "%" },
+    { id: "6", row: 0, finger: "r-index", base: "6", shift: "^" },
+    { id: "7", row: 0, finger: "r-index", base: "7", shift: "&" },
+    { id: "8", row: 0, finger: "r-middle", base: "8", shift: "*" },
+    { id: "9", row: 0, finger: "r-ring", base: "9", shift: ")" },
+    { id: "0", row: 0, finger: "r-pinky", base: "0", shift: "(" },
     { id: "-", row: 0, finger: "r-pinky", base: "-", shift: "_" },
     { id: "=", row: 0, finger: "r-pinky", base: "=", shift: "+" },
   ],

@@ -176,7 +176,13 @@ export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }:
         <TypingBox target={exercise.target} typed={typed} statuses={charStatuses} onChange={onChange} />
       </div>
 
-      <FingerGuide targetChar={currentChar} />
+      {currentChar === " " ? (
+        <p className="text-center text-sm font-bold mb-3" style={{ color: "var(--color-nur)" }}>
+          ␣ Press Space — no key lights up for this one
+        </p>
+      ) : (
+        <FingerGuide targetChar={currentChar} />
+      )}
       <VirtualKeyboard learned={learned} targetChar={currentChar} />
     </div>
   );

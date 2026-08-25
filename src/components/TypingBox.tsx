@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CharStatus } from "../hooks/useTypingSession";
+import { toArabicIndicDigits } from "../lib/arabic";
 
 interface Props {
   target: string;
@@ -69,7 +70,10 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
                 borderBottom: seg.status === "current" ? "3px solid var(--color-gold)" : "3px solid transparent",
               }}
             >
-              {seg.text}
+              {/* Reading-only: shown as Arabic-Indic digits even though the underlying
+                  target/typed stay Western digits — that's genuinely what every key in
+                  this layout produces (see data/keyboard.ts), so comparison must match it. */}
+              {toArabicIndicDigits(seg.text)}
             </span>
           );
         })}

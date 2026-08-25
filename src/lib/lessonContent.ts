@@ -2,7 +2,7 @@ import { ALL_KEYS } from "../data/keyboard";
 import type { GlyphIntro, Lesson } from "../data/curriculum";
 import { WORD_BANK, type BankWord } from "../data/wordBank";
 import { HADITHS } from "../data/hadiths";
-import { isHarakah, isTypeableWith, shuffled, toArabicIndicDigits } from "./arabic";
+import { isHarakah, isTypeableWith, shuffled } from "./arabic";
 
 function glyphOf(intro: GlyphIntro): string {
   const key = ALL_KEYS.find((k) => k.id === intro.keyId);
@@ -114,17 +114,14 @@ function buildTashkeelExercises(newGlyphs: string[], learnedBefore: Set<string>)
   ];
 }
 
-/** Numbers stage: Arabic-Indic digits throughout, matching the number-row keys taught (see data/keyboard.ts). */
+/** Numbers stage: target stays Western digits — that's what the number-row keys actually type
+ * (see data/keyboard.ts). Arabic-Indic digits are shown for reading only, at display time in
+ * TypingBox.tsx, so the on-screen target still visually matches Arabic-Indic without requiring
+ * a keystroke no real keyboard in this layout can produce. */
 function buildNumberExercises(): Exercise[] {
-  const level1 = toArabicIndicDigits(
-    "0 1 2 3 4 5 6 7 8 9 9 8 7 6 5 4 3 2 1 0 0 1 2 3 4 5 6 7 8 9 1 3 5 7 9 0 2 4 6 8"
-  );
-  const level2 = toArabicIndicDigits(
-    "10 20 30 40 50 60 70 80 90 100 12 34 56 78 90 21 43 65 87 09 15 60 11 22 33 44 55 66 77 88"
-  );
-  const level3 = toArabicIndicDigits(
-    "2026 1445 10 500 1974 27 99 2025 1000 365 24 60 12 40 100 2030 7 300 1990 45 200 3 800 15 90"
-  );
+  const level1 = "0 1 2 3 4 5 6 7 8 9 9 8 7 6 5 4 3 2 1 0 0 1 2 3 4 5 6 7 8 9 1 3 5 7 9 0 2 4 6 8";
+  const level2 = "10 20 30 40 50 60 70 80 90 100 12 34 56 78 90 21 43 65 87 09 15 60 11 22 33 44 55 66 77 88";
+  const level3 = "2026 1445 10 500 1974 27 99 2025 1000 365 24 60 12 40 100 2030 7 300 1990 45 200 3 800 15 90";
   return [
     { label: "Level 1 · Digits", target: level1 },
     { label: "Level 2 · Two-digit numbers", target: level2 },
