@@ -37,3 +37,21 @@ body {
   background: var(--color-gold-light);
   color: var(--color-ink);
 }
+
+/* TypingBox: painted over one unbroken text node via the CSS Custom
+   Highlight API so Arabic letters keep cursively joining across every
+   status boundary — see components/TypingBox.tsx. */
+::highlight(qalam-correct) {
+  color: var(--color-nur);
+}
+::highlight(qalam-incorrect) {
+  color: var(--color-clay);
+  background-color: rgba(220, 53, 69, 0.12);
+}
+::highlight(qalam-current) {
+  color: var(--color-ink);
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-gold);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 6px;
+}

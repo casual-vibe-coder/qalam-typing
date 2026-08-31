@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CharStatus } from "../hooks/useTypingSession";
 import { toArabicIndicDigits } from "../lib/arabic";
 
@@ -10,74 +10,119 @@ interface Props {
   autoFocus?: boolean;
 }
 
+const HAS_HIGHLIGHT_API =
+  typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined";
+
+/** Group ranges of the same status into [start, end) spans over the char indices. */
+function statusRuns(statuses: CharStatus[]): { start: number; end: number; status: CharStatus }[] {
+  const runs: { start: number; end: number; status: CharStatus }[] = [];
+  for (let i = 0; i < statuses.length; i++) {
+    const last = runs[runs.length - 1];
+    if (last && last.status === statuses[i]) {
+      last.end = i + 1;
+    } else {
+      runs.push({ start: i, end: i + 1, status: statuses[i] });
+    }
+  }
+  return runs;
+}
+
 interface Segment {
   text: string;
   status: CharStatus;
 }
 
-// Arabic is cursive — letters join to their neighbors. Wrapping every
-// character in its own <span> (one DOM node per glyph) breaks that joining
-// in most browsers, rendering each letter in isolated form with visible
-// gaps instead of connected script. Grouping consecutive same-status
-// characters into a single span keeps each run's text as one contiguous
-// text node, so shaping stays correct; only the (rare) status boundary
-// itself can show a break, which is normal and expected.
+/** Legacy per-span renderer, kept only as a fallback for browsers without the
+ * CSS Custom Highlight API. Splitting Arabic text across sibling <span>s
+ * breaks cursive joining at every status boundary — i.e. at whichever
+ * character you're currently on — which reads as a stray gap "between every
+ * letter" as you type. The Highlight API path below avoids this entirely by
+ * keeping the whole string as one text node and painting colors on top of
+ * it, so prefer that path whenever it's available. */
 function buildSegments(target: string, statuses: CharStatus[]): Segment[] {
-  const segments: Segment[] = [];
-  for (let i = 0; i < target.length; i++) {
-    const status = statuses[i] ?? "pending";
-    const last = segments[segments.length - 1];
-    if (last && last.status === status) {
-      last.text += target[i];
-    } else {
-      segments.push({ text: target[i], status });
-    }
+  return statusRuns(statuses).map(({ start, end, status }) => ({
+    text: target.slice(start, end),
+    status,
+  }));
+}
+
+function colorFor(status: CharStatus): string {
+  switch (status) {
+    case "correct":
+      return "var(--color-nur)";
+    case "incorrect":
+      return "var(--color-clay)";
+    case "current":
+      return "var(--color-ink)";
+    default:
+      return "#c7cad3";
   }
-  return segments;
 }
 
 export function TypingBox({ target, typed, statuses, onChange, autoFocus = true }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
-  const segments = useMemo(() => buildSegments(target, statuses), [target, statuses]);
   const [isFocused, setIsFocused] = useState(autoFocus);
+  const displayText = useMemo(() => toArabicIndicDigits(target), [target]);
+  const segments = useMemo(() => (HAS_HIGHLIGHT_API ? [] : buildSegments(target, statuses)), [target, statuses]);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [target, autoFocus]);
 
+  // Paint per-character status as CSS highlights over a single, unbroken text
+  // node instead of splitting the DOM into per-status <span>s. Highlights are
+  // a paint-time overlay — they never touch the underlying text run, so
+  // Arabic letters keep joining correctly across every status boundary, no
+  // matter which character you're currently on.
+  useLayoutEffect(() => {
+    if (!HAS_HIGHLIGHT_API) return;
+    const node = textRef.current?.firstChild;
+    if (!node || node.nodeType !== Node.TEXT_NODE) return;
+
+    const byStatus: Record<string, Range[]> = { correct: [], incorrect: [], current: [] };
+    for (const { start, end, status } of statusRuns(statuses)) {
+      if (status === "pending") continue;
+      const range = new Range();
+      range.setStart(node, start);
+      range.setEnd(node, end);
+      byStatus[status].push(range);
+    }
+
+    CSS.highlights.set("qalam-correct", new Highlight(...byStatus.correct));
+    CSS.highlights.set("qalam-incorrect", new Highlight(...byStatus.incorrect));
+    CSS.highlights.set("qalam-current", new Highlight(...byStatus.current));
+
+    return () => {
+      CSS.highlights.delete("qalam-correct");
+      CSS.highlights.delete("qalam-incorrect");
+      CSS.highlights.delete("qalam-current");
+    };
+  }, [displayText, statuses]);
+
   return (
     <div className="relative w-full" onClick={() => inputRef.current?.focus()}>
       <div
+        ref={textRef}
         dir="rtl"
         className="font-arabic text-3xl md:text-4xl leading-relaxed bg-white border-2 rounded-2xl px-6 py-8 cursor-text break-words"
-        style={{ borderColor: isFocused ? "var(--color-parchment-dim)" : "var(--color-gold)" }}
+        style={{ borderColor: isFocused ? "var(--color-parchment-dim)" : "var(--color-gold)", color: "#c7cad3" }}
       >
-        {segments.map((seg, i) => {
-          const color =
-            seg.status === "correct"
-              ? "var(--color-nur)"
-              : seg.status === "incorrect"
-                ? "var(--color-clay)"
-                : seg.status === "current"
-                  ? "var(--color-ink)"
-                  : "#c7cad3";
-          return (
-            <span
-              key={i}
-              style={{
-                color,
-                background: seg.status === "incorrect" ? "rgba(220,53,69,0.12)" : "transparent",
-                borderBottom: seg.status === "current" ? "3px solid var(--color-gold)" : "3px solid transparent",
-              }}
-            >
-              {/* Reading-only: shown as Arabic-Indic digits even though the underlying
-                  target/typed stay Western digits — that's genuinely what every key in
-                  this layout produces (see data/keyboard.ts), so comparison must match it. */}
-              {toArabicIndicDigits(seg.text)}
-            </span>
-          );
-        })}
+        {HAS_HIGHLIGHT_API
+          ? displayText
+          : segments.map((seg, i) => (
+              <span
+                key={i}
+                style={{
+                  color: colorFor(seg.status),
+                  background: seg.status === "incorrect" ? "rgba(220,53,69,0.12)" : "transparent",
+                  borderBottom: seg.status === "current" ? "3px solid var(--color-gold)" : "3px solid transparent",
+                }}
+              >
+                {toArabicIndicDigits(seg.text)}
+              </span>
+            ))}
       </div>
       {!isFocused && (
         <button
@@ -101,9 +146,8 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
           // controlled, re-rendering with `value={typed}` mid-composition
           // resets the DOM node and cancels that native preview — the
           // composition then never resolves until something (a space)
-          // forces it to commit, which looks like "needs a space after
-          // every letter". Skip pushing state updates while composing so
-          // the browser's own buffer is left alone; onCompositionEnd
+          // forces it to commit. Skip pushing state updates while composing
+          // so the browser's own buffer is left alone; onCompositionEnd
           // flushes the real value once it settles.
           if (isComposingRef.current) return;
           onChange(e.target.value);

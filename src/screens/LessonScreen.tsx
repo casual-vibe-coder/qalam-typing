@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { LESSONS, learnedGlyphs, lessonIndex } from "../data/curriculum";
 import { buildLessonExercises } from "../lib/lessonContent";
 import { useTypingSession, type TypingSessionResult } from "../hooks/useTypingSession";
@@ -14,8 +14,11 @@ import type { LessonResult } from "../hooks/useProgress";
 
 interface Props {
   lessonId: string;
+  startLevel?: number;
+  levelsDone?: boolean[];
   onExit: () => void;
   onFinish: (lessonId: string, result: LessonResult, xp: number) => void;
+  onLevelComplete: (lessonId: string, levelIndex: number) => void;
   onNeedKeyboardHelp: () => void;
 }
 
@@ -30,7 +33,15 @@ function aggregate(results: TypingSessionResult[]): { wpm: number; accuracy: num
   return { wpm, accuracy };
 }
 
-export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }: Props) {
+export function LessonScreen({
+  lessonId,
+  startLevel,
+  levelsDone = [false, false, false],
+  onExit,
+  onFinish,
+  onLevelComplete,
+  onNeedKeyboardHelp,
+}: Props) {
   const idx = lessonIndex(lessonId);
   const lesson = LESSONS[idx];
   const learned = useMemo(() => learnedGlyphs(idx), [idx]);
@@ -40,7 +51,13 @@ export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }:
   // Mastery lessons introduce no new key, so there's nothing to show on an
   // intro page — go straight to typing, like a real typing test.
   const [showIntro, setShowIntro] = useState(lesson.stage !== "mastery");
-  const [exerciseIndex, setExerciseIndex] = useState(0);
+  const [exerciseIndex, setExerciseIndex] = useState(() =>
+    Math.min(Math.max(startLevel ?? 0, 0), exercises.length - 1)
+  );
+  // Where this session actually started — needed to tell "walked past this
+  // level just now" apart from "jumped straight past it," since exerciseIndex
+  // only ever increases from whatever it started at.
+  const startIndexRef = useRef(exerciseIndex);
   const [results, setResults] = useState<TypingSessionResult[]>([]);
   const [awaitingContinue, setAwaitingContinue] = useState(false);
 
@@ -50,6 +67,7 @@ export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }:
   const { typed, onChange, reset, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } = useTypingSession(
     exercise.target,
     (r) => {
+      onLevelComplete(lessonId, exerciseIndex);
       setResults((prev) => [...prev, r]);
       setAwaitingContinue(true);
     }
@@ -137,20 +155,28 @@ export function LessonScreen({ lessonId, onExit, onFinish, onNeedKeyboardHelp }:
       </div>
 
       <div className="flex items-center justify-center gap-2 mb-6">
-        {exercises.map((ex, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
-            style={{
-              background: i === exerciseIndex ? "var(--color-gold)" : i < exerciseIndex ? "var(--color-nur)" : "var(--color-parchment-dim)",
-              color: i <= exerciseIndex ? "#fff" : "var(--color-ink)",
-              opacity: i <= exerciseIndex ? 1 : 0.6,
-            }}
-          >
-            {i < exerciseIndex && "✓ "}
-            {ex.label}
-          </div>
-        ))}
+        {exercises.map((ex, i) => {
+          // A level counts as done if we've walked past it this session, or
+          // if it was already recorded done before this session started
+          // (relevant when jumping straight to a later level from the path
+          // screen — the levels skipped over on the way there shouldn't
+          // falsely show ✓ just because their index is below the current one).
+          const done = (i >= startIndexRef.current && i < exerciseIndex) || Boolean(levelsDone[i]);
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{
+                background: i === exerciseIndex ? "var(--color-gold)" : done ? "var(--color-nur)" : "var(--color-parchment-dim)",
+                color: i === exerciseIndex || done ? "#fff" : "var(--color-ink)",
+                opacity: i === exerciseIndex || done ? 1 : 0.6,
+              }}
+            >
+              {done && "✓ "}
+              {ex.label}
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex items-center justify-center gap-4 mb-6">

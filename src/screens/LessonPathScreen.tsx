@@ -17,7 +17,7 @@ interface Props {
   isUnitComplete: (stage: string) => boolean;
   userEmail: string | null;
   canSignIn: boolean;
-  onStartLesson: (id: string) => void;
+  onStartLesson: (id: string, level?: number) => void;
   onOpenPractice: () => void;
   onOpenLeaderboard: () => void;
   onSetupKeyboard: () => void;
@@ -146,10 +146,61 @@ export function LessonPathScreen({
                   </span>
                 )}
               </button>
+              <LevelDots
+                lessonId={lesson.id}
+                unlocked={unlocked}
+                done={progress.levelsDone[lesson.id] ?? [false, false, false]}
+                onSelect={(level) => onStartLesson(lesson.id, level)}
+                className={result ? "mt-3" : "mt-1"}
+              />
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+const LEVEL_TITLES = ["Level 1", "Level 2", "Level 3"];
+
+/** The three mini circles under each lesson bubble — one per level (see
+ * lib/lessonContent.ts) — so each level is visible and jumpable straight
+ * from the path instead of only being reachable by walking 1 → 2 → 3
+ * inside the lesson itself. */
+function LevelDots({
+  unlocked,
+  done,
+  onSelect,
+  className = "",
+}: {
+  lessonId: string;
+  unlocked: boolean;
+  done: boolean[];
+  onSelect: (level: number) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-1.5 ${className}`}>
+      {[0, 1, 2].map((level) => {
+        const isDone = Boolean(done[level]);
+        return (
+          <button
+            key={level}
+            type="button"
+            disabled={!unlocked}
+            title={unlocked ? LEVEL_TITLES[level] : "Finish the unit above to unlock"}
+            onClick={() => unlocked && onSelect(level)}
+            className={`w-3.5 h-3.5 rounded-full border-2 transition-transform ${
+              unlocked ? "hover:scale-125" : "cursor-not-allowed"
+            }`}
+            style={{
+              background: isDone ? "var(--color-nur)" : "transparent",
+              borderColor: isDone ? "var(--color-nur)" : unlocked ? "var(--color-gold)" : "var(--color-parchment-dim)",
+            }}
+            aria-label={`${LEVEL_TITLES[level]}${isDone ? " (done)" : ""}`}
+          />
+        );
+      })}
     </div>
   );
 }

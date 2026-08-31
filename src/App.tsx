@@ -13,7 +13,7 @@ import { useProfile } from "./hooks/useProfile";
 type View =
   | { name: "landing" }
   | { name: "path" }
-  | { name: "lesson"; id: string }
+  | { name: "lesson"; id: string; level?: number }
   | { name: "practice" }
   | { name: "leaderboard" }
   | { name: "setup"; from: "landing" | "path" };
@@ -26,7 +26,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { session, signOut, isConfigured } = useAuth();
   const { username } = useProfile(session?.user.id ?? null);
-  const { progress, recordLesson, completedCount, isUnlocked, isUnitComplete } = useProgress(
+  const { progress, recordLesson, recordLevel, completedCount, isUnlocked, isUnitComplete } = useProgress(
     session?.user.id ?? null,
     username
   );
@@ -47,7 +47,7 @@ function App() {
           isUnitComplete={isUnitComplete}
           userEmail={session?.user.email ?? null}
           canSignIn={isConfigured}
-          onStartLesson={(id) => setView({ name: "lesson", id })}
+          onStartLesson={(id, level) => setView({ name: "lesson", id, level })}
           onOpenPractice={() => setView({ name: "practice" })}
           onOpenLeaderboard={() => setView({ name: "leaderboard" })}
           onSetupKeyboard={() => setView({ name: "setup", from: "path" })}
@@ -65,8 +65,11 @@ function App() {
       {view.name === "lesson" && (
         <LessonScreen
           lessonId={view.id}
+          startLevel={view.level}
+          levelsDone={progress.levelsDone[view.id]}
           onExit={() => setView({ name: "path" })}
           onNeedKeyboardHelp={() => setView({ name: "setup", from: "path" })}
+          onLevelComplete={recordLevel}
           onFinish={(id, result, xp) => {
             recordLesson(id, result, xp);
             const nowCompleted = completedCount + 1;

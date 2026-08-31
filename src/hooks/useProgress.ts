@@ -13,6 +13,11 @@ export interface Progress {
   streakCount: number;
   lastActiveDate: string | null; // yyyy-mm-dd
   lessons: Record<string, LessonResult>;
+  // Per-level (1/2/3) completion within a lesson, independent of the
+  // whole-lesson `lessons` entry above — lets the path screen show and
+  // link to each level individually instead of only the finished lesson
+  // as a whole. Keyed by lesson id, three booleans per lesson.
+  levelsDone: Record<string, boolean[]>;
 }
 
 const STORAGE_KEY = "qalam:progress:v1";
@@ -22,6 +27,7 @@ const EMPTY: Progress = {
   streakCount: 0,
   lastActiveDate: null,
   lessons: {},
+  levelsDone: {},
 };
 
 function todayStr(): string {
@@ -147,6 +153,25 @@ export function useProgress(userId: string | null, username: string | null) {
     [pushRemote]
   );
 
+  /** Mark a single level (0/1/2) of a lesson done — fires every time a level's
+   * typing session finishes, regardless of whether the other two levels have
+   * been done yet, so the path screen's per-level circles stay accurate even
+   * when someone jumps straight to level 3. */
+  const recordLevel = useCallback(
+    (lessonId: string, levelIndex: number) => {
+      setProgress((p) => {
+        const prevLevels = p.levelsDone[lessonId] ?? [false, false, false];
+        if (prevLevels[levelIndex]) return p; // already recorded — no-op
+        const nextLevels = [...prevLevels];
+        nextLevels[levelIndex] = true;
+        const next: Progress = { ...p, levelsDone: { ...p.levelsDone, [lessonId]: nextLevels } };
+        pushRemote(next);
+        return next;
+      });
+    },
+    [pushRemote]
+  );
+
   const completedCount = Object.keys(progress.lessons).length;
   const nextLesson = LESSONS.find((l) => !progress.lessons[l.id]) ?? LESSONS[LESSONS.length - 1];
 
@@ -169,5 +194,5 @@ export function useProgress(userId: string | null, username: string | null) {
     [isUnitComplete]
   );
 
-  return { progress, recordLesson, completedCount, nextLesson, isUnlocked, isUnitComplete };
+  return { progress, recordLesson, recordLevel, completedCount, nextLesson, isUnlocked, isUnitComplete };
 }
