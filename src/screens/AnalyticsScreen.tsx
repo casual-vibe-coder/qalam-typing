@@ -44,6 +44,13 @@ export function AnalyticsScreen({ progress, onExit }: Props) {
         <Stat label="Best accuracy" value={`${bestAccuracy}%`} color="var(--color-nur)" />
       </div>
 
+      <h2 className="text-sm font-bold uppercase tracking-wide opacity-60 mb-3">Sunnah &amp; Qur'an practice</h2>
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <Stat label="Hadith completed" value={progress.hadithCompleted} />
+        <Stat label="Qur'an pages" value={progress.quranPagesCompleted} color="var(--color-nur)" />
+        <Stat label="✍️ Memory reps" value={progress.memoryModeCompletions} color="var(--color-gold-dark)" />
+      </div>
+
       <div className="rounded-2xl border p-5 bg-white mb-8" style={{ borderColor: "var(--color-parchment-dim)" }}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-bold" style={{ color: "var(--color-ink)" }}>

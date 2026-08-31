@@ -28,7 +28,16 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { session, signOut, isConfigured } = useAuth();
   const { username } = useProfile(session?.user.id ?? null);
-  const { progress, recordLesson, recordLevel, recordChars, completedCount, isUnlocked, isUnitComplete } = useProgress(
+  const {
+    progress,
+    recordLesson,
+    recordLevel,
+    recordChars,
+    recordPracticeCompletion,
+    completedCount,
+    isUnlocked,
+    isUnitComplete,
+  } = useProgress(
     session?.user.id ?? null,
     username
   );
@@ -90,6 +99,7 @@ function App() {
           onExit={() => setView({ name: "path" })}
           onNeedKeyboardHelp={() => setView({ name: "setup", from: "path" })}
           onCharsTyped={recordChars}
+          onPracticeComplete={recordPracticeCompletion}
         />
       )}
 

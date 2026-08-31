@@ -11,9 +11,11 @@ import { useTypingSession, type TypingSessionResult } from "../hooks/useTypingSe
 
 type Mode = "hadith" | "quran";
 type QuranSubMode = "surah" | "page";
+type PracticeKind = "hadith" | "quran-page" | "quran-surah";
 const LAST_QURAN_PAGE = 604;
 
 interface Item {
+  kind: PracticeKind;
   ar: string;
   // Authentic Uthmani mushaf spelling, same length as `ar` character-for-
   // character (see toTypableArabic) — only set for Qur'an-by-page items,
@@ -27,9 +29,10 @@ interface Props {
   onExit: () => void;
   onNeedKeyboardHelp: () => void;
   onCharsTyped: (count: number) => void;
+  onPracticeComplete: (info: { kind: PracticeKind; memoryMode: boolean }) => void;
 }
 
-export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped }: Props) {
+export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped, onPracticeComplete }: Props) {
   const [mode, setMode] = useState<Mode>("hadith");
   const [quranSubMode, setQuranSubMode] = useState<QuranSubMode>("surah");
   const [selected, setSelected] = useState<Item | null>(null);
@@ -42,6 +45,7 @@ export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped }: Pro
         onExit={() => setSelected(null)}
         onNeedKeyboardHelp={onNeedKeyboardHelp}
         onCharsTyped={onCharsTyped}
+        onPracticeComplete={onPracticeComplete}
       />
     );
   }
@@ -74,7 +78,9 @@ export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped }: Pro
           {HADITHS.filter((h) => h.collection === collection).map((h, i) => (
             <button
               key={i}
-              onClick={() => setSelected({ ar: h.ar, translations: [h.en], sub: `${h.narrator} — ${h.reference}` })}
+              onClick={() =>
+                setSelected({ kind: "hadith", ar: h.ar, translations: [h.en], sub: `${h.narrator} — ${h.reference}` })
+              }
               className="text-left rounded-xl border p-4 hover:shadow-md transition-shadow bg-white"
               style={{ borderColor: "var(--color-parchment-dim)" }}
             >
@@ -99,6 +105,7 @@ export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped }: Pro
                   key={s.id}
                   onClick={() =>
                     setSelected({
+                      kind: "quran-surah",
                       ar: s.ayahs.map((a) => a.ar).join("   "),
                       translations: s.ayahs.map((a) => a.en),
                       sub: `${s.name} (${s.ayahs.length} ayahs)`,
@@ -117,7 +124,11 @@ export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped }: Pro
               ))}
             </>
           ) : (
-            <QuranPageBrowser onNeedKeyboardHelp={onNeedKeyboardHelp} onCharsTyped={onCharsTyped} />
+            <QuranPageBrowser
+              onNeedKeyboardHelp={onNeedKeyboardHelp}
+              onCharsTyped={onCharsTyped}
+              onPracticeComplete={onPracticeComplete}
+            />
           )}
         </div>
       )}
@@ -169,9 +180,11 @@ async function fetchQuranPage(pageNum: number): Promise<QuranPageData> {
 function QuranPageBrowser({
   onNeedKeyboardHelp,
   onCharsTyped,
+  onPracticeComplete,
 }: {
   onNeedKeyboardHelp: () => void;
   onCharsTyped: (count: number) => void;
+  onPracticeComplete: (info: { kind: PracticeKind; memoryMode: boolean }) => void;
 }) {
   const [pageNum, setPageNum] = useState(1);
   const [pageData, setPageData] = useState<QuranPageData | null>(null);
@@ -201,6 +214,7 @@ function QuranPageBrowser({
   const startPage = () => {
     if (!pageData) return;
     const item: Item = {
+      kind: "quran-page",
       ar: toTypableArabic(pageData.ar),
       renderAr: pageData.ar,
       translations: pageData.translations,
@@ -217,6 +231,7 @@ function QuranPageBrowser({
         onExit={() => setSession(null)}
         onNeedKeyboardHelp={onNeedKeyboardHelp}
         onCharsTyped={onCharsTyped}
+        onPracticeComplete={onPracticeComplete}
         chooseAnotherLabel="Back to page picker"
         onNext={
           session.pageNum < LAST_QURAN_PAGE
@@ -293,6 +308,7 @@ function PracticeSession({
   onExit,
   onNeedKeyboardHelp,
   onCharsTyped,
+  onPracticeComplete,
   onNext,
   chooseAnotherLabel = "Choose another",
 }: {
@@ -300,6 +316,7 @@ function PracticeSession({
   onExit: () => void;
   onNeedKeyboardHelp: () => void;
   onCharsTyped: (count: number) => void;
+  onPracticeComplete: (info: { kind: PracticeKind; memoryMode: boolean }) => void;
   // When set, the results screen offers "Next page →" alongside the usual
   // exit — used by the Qur'an page browser to flow straight into the next
   // page instead of bouncing back to the picker every time.
@@ -330,6 +347,7 @@ function PracticeSession({
   const { typed, onChange, reset, fixFirstMistake, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } =
     useTypingSession(target, (r) => {
       onCharsTyped(r.chars);
+      onPracticeComplete({ kind: item.kind, memoryMode });
       setResult(r);
     });
 

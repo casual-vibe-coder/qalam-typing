@@ -22,6 +22,15 @@ export interface Progress {
   // a pure volume metric for the "most practice" leaderboard, independent
   // of skill or curriculum progress.
   totalCharsTyped: number;
+  // Completed items in the free Sunnah & Qur'an practice screen — hadith
+  // (either collection) and Qur'an pages counted separately, since "furthest
+  // lesson" above only reflects the structured curriculum, not this screen.
+  hadithCompleted: number;
+  quranPagesCompleted: number;
+  // Every practice session finished with "✍️ From memory" on, hadith or
+  // Qur'an alike — the metric the lawh/slate memory-mode feature is actually
+  // about, independent of typing speed or raw practice volume.
+  memoryModeCompletions: number;
 }
 
 const STORAGE_KEY = "qalam:progress:v1";
@@ -33,6 +42,9 @@ const EMPTY: Progress = {
   lessons: {},
   levelsDone: {},
   totalCharsTyped: 0,
+  hadithCompleted: 0,
+  quranPagesCompleted: 0,
+  memoryModeCompletions: 0,
 };
 
 /** Index into LESSONS of the furthest one completed so far, or -1 if none — "where they are in their journey" for the leaderboard. */
@@ -103,6 +115,9 @@ export function useProgress(userId: string | null, username: string | null) {
         best_accuracy: bestAccuracy,
         total_chars_typed: p.totalCharsTyped,
         furthest_lesson_index: furthestLessonIndex(p),
+        hadith_completed: p.hadithCompleted,
+        quran_pages_completed: p.quranPagesCompleted,
+        memory_mode_completions: p.memoryModeCompletions,
         updated_at: new Date().toISOString(),
       });
     },
@@ -206,6 +221,26 @@ export function useProgress(userId: string | null, username: string | null) {
     [pushRemote]
   );
 
+  /** Fires once per finished Sunnah & Qur'an practice session — a hadith
+   * (either collection) or a Qur'an page/surah — tracking what kind it was
+   * and whether "From memory" was on, for the Analytics screen and the
+   * leaderboard's Qur'an-journey / memorization categories. */
+  const recordPracticeCompletion = useCallback(
+    (info: { kind: "hadith" | "quran-page" | "quran-surah"; memoryMode: boolean }) => {
+      setProgress((p) => {
+        const next: Progress = {
+          ...p,
+          hadithCompleted: p.hadithCompleted + (info.kind === "hadith" ? 1 : 0),
+          quranPagesCompleted: p.quranPagesCompleted + (info.kind === "quran-page" ? 1 : 0),
+          memoryModeCompletions: p.memoryModeCompletions + (info.memoryMode ? 1 : 0),
+        };
+        pushRemote(next);
+        return next;
+      });
+    },
+    [pushRemote]
+  );
+
   const completedCount = Object.keys(progress.lessons).length;
   const nextLesson = LESSONS.find((l) => !progress.lessons[l.id]) ?? LESSONS[LESSONS.length - 1];
 
@@ -228,5 +263,15 @@ export function useProgress(userId: string | null, username: string | null) {
     [isUnitComplete]
   );
 
-  return { progress, recordLesson, recordLevel, recordChars, completedCount, nextLesson, isUnlocked, isUnitComplete };
+  return {
+    progress,
+    recordLesson,
+    recordLevel,
+    recordChars,
+    recordPracticeCompletion,
+    completedCount,
+    nextLesson,
+    isUnlocked,
+    isUnitComplete,
+  };
 }

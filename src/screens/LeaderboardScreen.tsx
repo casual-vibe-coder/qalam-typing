@@ -12,9 +12,12 @@ interface Row {
   best_accuracy: number;
   total_chars_typed: number | null;
   furthest_lesson_index: number | null;
+  hadith_completed: number | null;
+  quran_pages_completed: number | null;
+  memory_mode_completions: number | null;
 }
 
-type Tab = "typers" | "practice";
+type Tab = "typers" | "practice" | "memory";
 
 interface Props {
   currentUserId: string | null;
@@ -29,6 +32,17 @@ function journeyLabel(furthestIndex: number | null | undefined): string {
   return `${lesson.title} (${furthestIndex + 1}/${LESSONS.length})`;
 }
 
+const TAB_LABEL: Record<Tab, string> = {
+  typers: "🏆 Top Typers",
+  practice: "✦ Most Practice",
+  memory: "✍️ Memorization",
+};
+const TAB_SUBTITLE: Record<Tab, string> = {
+  typers: "Ranked by speed + accuracy.",
+  practice: "Ranked by total characters typed.",
+  memory: "Ranked by \"write it from memory\" sessions completed — hadith or Qur'an.",
+};
+
 export function LeaderboardScreen({ currentUserId, onExit }: Props) {
   const [tab, setTab] = useState<Tab>("typers");
   const [rows, setRows] = useState<Row[]>([]);
@@ -42,9 +56,11 @@ export function LeaderboardScreen({ currentUserId, onExit }: Props) {
     }
     supabase
       .from("qalam_leaderboard")
-      .select("user_id, username, xp, lessons_completed, best_wpm, best_accuracy, total_chars_typed, furthest_lesson_index")
-      // Fetch everyone once and sort client-side per tab — the two rankings
-      // use different composite metrics, so one query covers both.
+      .select(
+        "user_id, username, xp, lessons_completed, best_wpm, best_accuracy, total_chars_typed, furthest_lesson_index, hadith_completed, quran_pages_completed, memory_mode_completions"
+      )
+      // Fetch everyone once and sort client-side per tab — the three rankings
+      // use different composite metrics, so one query covers all of them.
       .limit(200)
       .then(({ data, error }) => {
         if (error) setError(error.message);
@@ -59,6 +75,8 @@ export function LeaderboardScreen({ currentUserId, onExit }: Props) {
     return scoreB - scoreA;
   });
   const practice = [...rows].sort((a, b) => (b.total_chars_typed ?? 0) - (a.total_chars_typed ?? 0));
+  const memory = [...rows].sort((a, b) => (b.memory_mode_completions ?? 0) - (a.memory_mode_completions ?? 0));
+  const ranked = tab === "typers" ? typers : tab === "practice" ? practice : memory;
 
   return (
     <div className="max-w-md mx-auto py-8 px-6 pb-24">
@@ -68,13 +86,12 @@ export function LeaderboardScreen({ currentUserId, onExit }: Props) {
       <h1 className="text-2xl font-extrabold mb-1" style={{ color: "var(--color-ink)" }}>
         Leaderboard
       </h1>
-      <p className="opacity-70 mb-6">
-        {tab === "typers" ? "Ranked by speed + accuracy." : "Ranked by total characters typed."}
-      </p>
+      <p className="opacity-70 mb-6">{TAB_SUBTITLE[tab]}</p>
 
-      <div className="flex gap-2 mb-6">
-        <TabButton active={tab === "typers"} onClick={() => setTab("typers")} label="🏆 Top Typers" />
-        <TabButton active={tab === "practice"} onClick={() => setTab("practice")} label="✦ Most Practice" />
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
+          <TabButton key={t} active={tab === t} onClick={() => setTab(t)} label={TAB_LABEL[t]} />
+        ))}
       </div>
 
       {!isSupabaseConfigured && <p className="text-sm opacity-70">Sign in to see and join the leaderboard.</p>}
@@ -90,8 +107,17 @@ export function LeaderboardScreen({ currentUserId, onExit }: Props) {
       )}
 
       <div className="flex flex-col gap-2">
-        {(tab === "typers" ? typers : practice).map((row, i) => {
+        {ranked.map((row, i) => {
           const isMe = row.user_id === currentUserId;
+          const metric =
+            tab === "typers"
+              ? `${row.best_wpm} WPM · ${row.best_accuracy}% acc`
+              : tab === "practice"
+                ? `${(row.total_chars_typed ?? 0).toLocaleString()} characters typed`
+                : `${row.memory_mode_completions ?? 0} memory session${(row.memory_mode_completions ?? 0) === 1 ? "" : "s"}`;
+          const scoreValue =
+            tab === "typers" ? overallScore(row.best_accuracy, row.best_wpm) : tab === "practice" ? row.xp : row.memory_mode_completions ?? 0;
+          const scoreLabel = tab === "typers" ? "score" : tab === "practice" ? "XP" : "reps";
           return (
             <div
               key={row.user_id}
@@ -109,16 +135,15 @@ export function LeaderboardScreen({ currentUserId, onExit }: Props) {
                   {row.username}
                   {isMe && <span className="ml-1.5 font-medium opacity-60">(you)</span>}
                 </div>
-                <div className="text-[11px] opacity-60">
-                  {tab === "typers"
-                    ? `${row.best_wpm} WPM · ${row.best_accuracy}% acc`
-                    : `${(row.total_chars_typed ?? 0).toLocaleString()} characters typed`}
+                <div className="text-[11px] opacity-60">{metric}</div>
+                <div className="text-[11px] opacity-50">
+                  {journeyLabel(row.furthest_lesson_index)} · 📖 {row.hadith_completed ?? 0} hadith · 🕌{" "}
+                  {row.quran_pages_completed ?? 0} pages
                 </div>
-                <div className="text-[11px] opacity-50">{journeyLabel(row.furthest_lesson_index)}</div>
               </div>
               <div className="text-sm font-extrabold shrink-0 text-right" style={{ color: "var(--color-gold-dark)" }}>
-                {tab === "typers" ? overallScore(row.best_accuracy, row.best_wpm) : row.xp}
-                <div className="text-[10px] font-medium opacity-60">{tab === "typers" ? "score" : "XP"}</div>
+                {scoreValue}
+                <div className="text-[10px] font-medium opacity-60">{scoreLabel}</div>
               </div>
             </div>
           );
