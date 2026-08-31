@@ -18,6 +18,10 @@ export interface Progress {
   // link to each level individually instead of only the finished lesson
   // as a whole. Keyed by lesson id, three booleans per lesson.
   levelsDone: Record<string, boolean[]>;
+  // Every character of every completed exercise, lesson or free practice —
+  // a pure volume metric for the "most practice" leaderboard, independent
+  // of skill or curriculum progress.
+  totalCharsTyped: number;
 }
 
 const STORAGE_KEY = "qalam:progress:v1";
@@ -28,7 +32,17 @@ const EMPTY: Progress = {
   lastActiveDate: null,
   lessons: {},
   levelsDone: {},
+  totalCharsTyped: 0,
 };
+
+/** Index into LESSONS of the furthest one completed so far, or -1 if none — "where they are in their journey" for the leaderboard. */
+function furthestLessonIndex(p: Progress): number {
+  let furthest = -1;
+  LESSONS.forEach((l, i) => {
+    if (p.lessons[l.id]) furthest = i;
+  });
+  return furthest;
+}
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -87,6 +101,8 @@ export function useProgress(userId: string | null, username: string | null) {
         lessons_completed: results.length,
         best_wpm: bestWpm,
         best_accuracy: bestAccuracy,
+        total_chars_typed: p.totalCharsTyped,
+        furthest_lesson_index: furthestLessonIndex(p),
         updated_at: new Date().toISOString(),
       });
     },
@@ -176,6 +192,20 @@ export function useProgress(userId: string | null, username: string | null) {
     [pushRemote]
   );
 
+  /** Add to the running total-characters-typed count — called for every
+   * completed exercise, lesson or free practice alike, since this metric is
+   * about typing volume, not curriculum progress. */
+  const recordChars = useCallback(
+    (count: number) => {
+      setProgress((p) => {
+        const next: Progress = { ...p, totalCharsTyped: p.totalCharsTyped + count };
+        pushRemote(next);
+        return next;
+      });
+    },
+    [pushRemote]
+  );
+
   const completedCount = Object.keys(progress.lessons).length;
   const nextLesson = LESSONS.find((l) => !progress.lessons[l.id]) ?? LESSONS[LESSONS.length - 1];
 
@@ -198,5 +228,5 @@ export function useProgress(userId: string | null, username: string | null) {
     [isUnitComplete]
   );
 
-  return { progress, recordLesson, recordLevel, completedCount, nextLesson, isUnlocked, isUnitComplete };
+  return { progress, recordLesson, recordLevel, recordChars, completedCount, nextLesson, isUnlocked, isUnitComplete };
 }

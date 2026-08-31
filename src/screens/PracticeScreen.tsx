@@ -17,14 +17,22 @@ type Item =
 interface Props {
   onExit: () => void;
   onNeedKeyboardHelp: () => void;
+  onCharsTyped: (count: number) => void;
 }
 
-export function PracticeScreen({ onExit, onNeedKeyboardHelp }: Props) {
+export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped }: Props) {
   const [mode, setMode] = useState<Mode>("hadith");
   const [selected, setSelected] = useState<Item | null>(null);
 
   if (selected) {
-    return <PracticeSession item={selected} onExit={() => setSelected(null)} onNeedKeyboardHelp={onNeedKeyboardHelp} />;
+    return (
+      <PracticeSession
+        item={selected}
+        onExit={() => setSelected(null)}
+        onNeedKeyboardHelp={onNeedKeyboardHelp}
+        onCharsTyped={onCharsTyped}
+      />
+    );
   }
 
   return (
@@ -107,10 +115,12 @@ function PracticeSession({
   item,
   onExit,
   onNeedKeyboardHelp,
+  onCharsTyped,
 }: {
   item: Item;
   onExit: () => void;
   onNeedKeyboardHelp: () => void;
+  onCharsTyped: (count: number) => void;
 }) {
   const [result, setResult] = useState<TypingSessionResult | null>(null);
   // Full tashkeel (every short vowel + shaddah + sukoon) is genuinely hard
@@ -122,7 +132,10 @@ function PracticeSession({
   const [tashkeel, setTashkeel] = useState(false);
   const target = useMemo(() => (tashkeel ? item.ar : stripHarakat(item.ar)), [item, tashkeel]);
   const { typed, onChange, reset, fixFirstMistake, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } =
-    useTypingSession(target, (r) => setResult(r));
+    useTypingSession(target, (r) => {
+      onCharsTyped(r.chars);
+      setResult(r);
+    });
 
   const translationBlock = useMemo(
     () => item.translations.map((t, i) => <p key={i} className="mb-2 last:mb-0">{t}</p>),

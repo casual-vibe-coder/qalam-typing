@@ -20,6 +20,7 @@ interface Props {
   onStartLesson: (id: string, level?: number) => void;
   onOpenPractice: () => void;
   onOpenLeaderboard: () => void;
+  onOpenAnalytics: () => void;
   onSetupKeyboard: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
@@ -34,6 +35,7 @@ export function LessonPathScreen({
   onStartLesson,
   onOpenPractice,
   onOpenLeaderboard,
+  onOpenAnalytics,
   onSetupKeyboard,
   onSignIn,
   onSignOut,
@@ -95,7 +97,7 @@ export function LessonPathScreen({
 
       <button
         onClick={onOpenLeaderboard}
-        className="w-full text-left rounded-2xl p-5 mb-8 border-2 transition-transform hover:scale-[1.02]"
+        className="w-full text-left rounded-2xl p-5 mb-3 border-2 transition-transform hover:scale-[1.02]"
         style={{ borderColor: "var(--color-nur)", background: "linear-gradient(135deg,#fff,#eaf1ff)" }}
       >
         <div className="flex items-center justify-between">
@@ -106,6 +108,22 @@ export function LessonPathScreen({
             <div className="text-sm opacity-70">See how you rank against everyone else</div>
           </div>
           <span className="text-2xl">🏆</span>
+        </div>
+      </button>
+
+      <button
+        onClick={onOpenAnalytics}
+        className="w-full text-left rounded-2xl p-5 mb-8 border-2 transition-transform hover:scale-[1.02]"
+        style={{ borderColor: "var(--color-ink)", background: "linear-gradient(135deg,#fff,#f0f1f3)" }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-extrabold text-lg" style={{ color: "var(--color-ink)" }}>
+              My Analytics
+            </div>
+            <div className="text-sm opacity-70">Per-lesson stats, stage progress, totals</div>
+          </div>
+          <span className="text-2xl">📊</span>
         </div>
       </button>
 

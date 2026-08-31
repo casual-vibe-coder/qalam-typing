@@ -19,6 +19,7 @@ interface Props {
   onExit: () => void;
   onFinish: (lessonId: string, result: LessonResult, xp: number) => void;
   onLevelComplete: (lessonId: string, levelIndex: number) => void;
+  onCharsTyped: (count: number) => void;
   onNeedKeyboardHelp: () => void;
 }
 
@@ -40,6 +41,7 @@ export function LessonScreen({
   onExit,
   onFinish,
   onLevelComplete,
+  onCharsTyped,
   onNeedKeyboardHelp,
 }: Props) {
   const idx = lessonIndex(lessonId);
@@ -72,6 +74,7 @@ export function LessonScreen({
     exercise.target,
     (r) => {
       onLevelComplete(lessonId, exerciseIndex);
+      onCharsTyped(r.chars);
       setDoneThisSession((prev) => {
         const next = [...prev];
         next[exerciseIndex] = true;
