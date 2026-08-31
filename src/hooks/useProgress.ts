@@ -111,7 +111,11 @@ export function useProgress(userId: string | null, username: string | null) {
     syncedForUser.current = userId;
     (async () => {
       const { data } = await supabase.from("qalam_progress").select("data").eq("user_id", userId).maybeSingle();
-      const remote = data?.data as Progress | undefined;
+      // Backfill against EMPTY here too — a row saved before a field like
+      // `levelsDone` existed comes back missing it entirely (this is raw
+      // Supabase JSON, not run through loadLocal's own {...EMPTY, ...} merge),
+      // and an app crash on load traces straight back to that.
+      const remote = data?.data ? ({ ...EMPTY, ...(data.data as Partial<Progress>) } as Progress) : undefined;
       const merged = remote ? richerOf(remote, progress) : progress;
       setProgress(merged);
       await supabase.from("qalam_progress").upsert({ user_id: userId, data: merged, updated_at: new Date().toISOString() });
@@ -160,7 +164,7 @@ export function useProgress(userId: string | null, username: string | null) {
   const recordLevel = useCallback(
     (lessonId: string, levelIndex: number) => {
       setProgress((p) => {
-        const prevLevels = p.levelsDone[lessonId] ?? [false, false, false];
+        const prevLevels = p.levelsDone?.[lessonId] ?? [false, false, false];
         if (prevLevels[levelIndex]) return p; // already recorded — no-op
         const nextLevels = [...prevLevels];
         nextLevels[levelIndex] = true;

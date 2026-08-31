@@ -66,7 +66,7 @@ function App() {
         <LessonScreen
           lessonId={view.id}
           startLevel={view.level}
-          levelsDone={progress.levelsDone[view.id]}
+          levelsDone={progress.levelsDone?.[view.id]}
           onExit={() => setView({ name: "path" })}
           onNeedKeyboardHelp={() => setView({ name: "setup", from: "path" })}
           onLevelComplete={recordLevel}

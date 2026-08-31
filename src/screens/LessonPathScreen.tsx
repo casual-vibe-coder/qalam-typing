@@ -149,7 +149,7 @@ export function LessonPathScreen({
               <LevelDots
                 lessonId={lesson.id}
                 unlocked={unlocked}
-                done={progress.levelsDone[lesson.id] ?? [false, false, false]}
+                done={progress.levelsDone?.[lesson.id] ?? [false, false, false]}
                 onSelect={(level) => onStartLesson(lesson.id, level)}
                 className={result ? "mt-3" : "mt-1"}
               />
