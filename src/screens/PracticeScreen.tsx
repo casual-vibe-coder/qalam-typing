@@ -6,7 +6,7 @@ import { StatsBar } from "../components/StatsBar";
 import { LanguageWarningBanner } from "../components/LanguageWarningBanner";
 import { ResultsPanel } from "../components/ResultsPanel";
 import { starsFor } from "../lib/scoring";
-import { stripHarakat, toTypableArabic } from "../lib/arabic";
+import { stripHarakat, stripInvisibleMarks, toTypableArabic } from "../lib/arabic";
 import { useTypingSession, type TypingSessionResult } from "../hooks/useTypingSession";
 
 type Mode = "hadith" | "quran";
@@ -166,7 +166,7 @@ async function fetchQuranPage(pageNum: number): Promise<QuranPageData> {
   const ayahs: { text: string; surah: { englishName: string } }[] = arRes.data.ayahs;
   const surahNames = [...new Set(ayahs.map((a) => a.surah.englishName))].join(", ");
   return {
-    ar: ayahs.map((a) => a.text).join(" "),
+    ar: stripInvisibleMarks(ayahs.map((a) => a.text).join(" ")),
     translations: (enRes.data.ayahs as { text: string }[]).map((a) => a.text),
     surahLabel: surahNames,
   };

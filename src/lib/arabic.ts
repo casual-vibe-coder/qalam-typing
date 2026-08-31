@@ -18,7 +18,23 @@ export function toTypableArabic(text: string): string {
   return text.replace(/[ٱٰ]/g, "ا");
 }
 
-/** True for a single combining diacritic (harakah, shaddah, sukoon, tanween) — false for a base letter. */
+// The Qur'an-by-page API's text occasionally leads with a zero-width/BOM-style
+// mark (confirmed on Al-Fatiha's Bismillah, likely elsewhere too) - completely
+// invisible, but if left in it becomes a real character in the typing target
+// that no keystroke can ever produce, silently blocking the whole exercise
+// from position 0. Strip these from the source text before deriving anything
+// else from it, so both the authentic-Uthmani display and the typable target
+// stay free of them (and, just as importantly, stay the same length as each
+// other - see renderText in components/TypingBox.tsx).
+// \u200B-\u200F: ZW space/non-joiner/joiner, LTR/RTL marks
+// \u202A-\u202E: bidi embedding controls | \u2060-\u2064: word joiner + invisible math operators
+// \uFEFF: BOM | \u061C: Arabic letter mark
+const INVISIBLE_MARKS = /[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF\u061C]/g;
+
+export function stripInvisibleMarks(text: string): string {
+  return text.replace(INVISIBLE_MARKS, "");
+}
+
 export function isHarakah(ch: string): boolean {
   return /[ً-ْٰ]/.test(ch);
 }
