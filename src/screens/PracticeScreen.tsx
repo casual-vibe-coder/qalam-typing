@@ -6,6 +6,7 @@ import { StatsBar } from "../components/StatsBar";
 import { LanguageWarningBanner } from "../components/LanguageWarningBanner";
 import { ResultsPanel } from "../components/ResultsPanel";
 import { starsFor } from "../lib/scoring";
+import { stripHarakat } from "../lib/arabic";
 import { useTypingSession, type TypingSessionResult } from "../hooks/useTypingSession";
 
 type Mode = "hadith" | "quran";
@@ -112,8 +113,16 @@ function PracticeSession({
   onNeedKeyboardHelp: () => void;
 }) {
   const [result, setResult] = useState<TypingSessionResult | null>(null);
+  // Full tashkeel (every short vowel + shaddah + sukoon) is genuinely hard
+  // to type accurately, and this comparison is strict per character — skip
+  // even one diacritic keystroke and every character after it is now
+  // compared one position out of alignment, which cascades into almost the
+  // entire rest of the text reading as "wrong" despite looking right. Most
+  // everyday Arabic typing skips tashkeel entirely, so default to that.
+  const [tashkeel, setTashkeel] = useState(false);
+  const target = useMemo(() => (tashkeel ? item.ar : stripHarakat(item.ar)), [item, tashkeel]);
   const { typed, onChange, reset, fixFirstMistake, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } =
-    useTypingSession(item.ar, (r) => setResult(r));
+    useTypingSession(target, (r) => setResult(r));
 
   const translationBlock = useMemo(
     () => item.translations.map((t, i) => <p key={i} className="mb-2 last:mb-0">{t}</p>),
@@ -145,6 +154,22 @@ function PracticeSession({
         </div>
       ) : (
         <>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <button
+              onClick={() => {
+                setTashkeel((t) => !t);
+                reset();
+              }}
+              title="Toggle whether short vowels / shaddah / sukoon are required"
+              className="text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+              style={{
+                background: tashkeel ? "var(--color-nur)" : "var(--color-parchment-dim)",
+                color: tashkeel ? "#fff" : "var(--color-ink)",
+              }}
+            >
+              {tashkeel ? "✓ " : ""}With tashkeel
+            </button>
+          </div>
           <div className="flex items-center justify-center gap-4 mb-4">
             <StatsBar errors={liveErrors} progressPct={progressPct} />
             <button
@@ -156,7 +181,7 @@ function PracticeSession({
               ↺ Start over
             </button>
           </div>
-          {liveErrors > 0 && typed.length >= item.ar.length && (
+          {liveErrors > 0 && typed.length >= target.length && (
             <p className="text-center text-xs mb-4" style={{ color: "var(--color-clay)" }}>
               There's a mistake hiding in what you've typed.{" "}
               <button onClick={fixFirstMistake} className="font-bold underline">
@@ -167,7 +192,7 @@ function PracticeSession({
           )}
           {wrongLanguageSuspected && <LanguageWarningBanner onNeedHelp={onNeedKeyboardHelp} />}
           <div className="mb-6">
-            <TypingBox target={item.ar} typed={typed} statuses={charStatuses} onChange={onChange} />
+            <TypingBox target={target} typed={typed} statuses={charStatuses} onChange={onChange} />
           </div>
           <div
             className="rounded-xl p-4 text-sm leading-relaxed"

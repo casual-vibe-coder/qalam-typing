@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { LESSONS, learnedGlyphs, lessonIndex } from "../data/curriculum";
 import { buildLessonExercises } from "../lib/lessonContent";
 import { useTypingSession, type TypingSessionResult } from "../hooks/useTypingSession";
@@ -54,10 +54,14 @@ export function LessonScreen({
   const [exerciseIndex, setExerciseIndex] = useState(() =>
     Math.min(Math.max(startLevel ?? 0, 0), exercises.length - 1)
   );
-  // Where this session actually started — needed to tell "walked past this
-  // level just now" apart from "jumped straight past it," since exerciseIndex
-  // only ever increases from whatever it started at.
-  const startIndexRef = useRef(exerciseIndex);
+  // Tracked locally (not just derived from levelsDone) so a level finished
+  // just now shows ✓ immediately, without waiting on the parent to re-render
+  // this screen with a fresh prop.
+  const [doneThisSession, setDoneThisSession] = useState<boolean[]>(() => [
+    Boolean(levelsDone[0]),
+    Boolean(levelsDone[1]),
+    Boolean(levelsDone[2]),
+  ]);
   const [results, setResults] = useState<TypingSessionResult[]>([]);
   const [awaitingContinue, setAwaitingContinue] = useState(false);
 
@@ -68,10 +72,24 @@ export function LessonScreen({
     exercise.target,
     (r) => {
       onLevelComplete(lessonId, exerciseIndex);
+      setDoneThisSession((prev) => {
+        const next = [...prev];
+        next[exerciseIndex] = true;
+        return next;
+      });
       setResults((prev) => [...prev, r]);
       setAwaitingContinue(true);
     }
   );
+
+  // Any level can be jumped to directly — same "any order" philosophy as the
+  // path screen's mini circles — so switching levels just re-points the
+  // typing session at that level's target and clears whatever was mid-typed.
+  const goToLevel = (level: number) => {
+    if (level === exerciseIndex) return;
+    setExerciseIndex(level);
+    reset();
+  };
 
   const currentChar = exercise.target[typed.length] ?? null;
 
@@ -156,16 +174,12 @@ export function LessonScreen({
 
       <div className="flex items-center justify-center gap-2 mb-6">
         {exercises.map((ex, i) => {
-          // A level counts as done if we've walked past it this session, or
-          // if it was already recorded done before this session started
-          // (relevant when jumping straight to a later level from the path
-          // screen — the levels skipped over on the way there shouldn't
-          // falsely show ✓ just because their index is below the current one).
-          const done = (i >= startIndexRef.current && i < exerciseIndex) || Boolean(levelsDone[i]);
+          const done = doneThisSession[i];
           return (
-            <div
+            <button
               key={i}
-              className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+              onClick={() => goToLevel(i)}
+              className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full transition-transform hover:scale-105"
               style={{
                 background: i === exerciseIndex ? "var(--color-gold)" : done ? "var(--color-nur)" : "var(--color-parchment-dim)",
                 color: i === exerciseIndex || done ? "#fff" : "var(--color-ink)",
@@ -174,7 +188,7 @@ export function LessonScreen({
             >
               {done && "✓ "}
               {ex.label}
-            </div>
+            </button>
           );
         })}
       </div>
