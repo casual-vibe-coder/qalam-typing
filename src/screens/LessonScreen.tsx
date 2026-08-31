@@ -64,7 +64,7 @@ export function LessonScreen({
   const exercise = exercises[exerciseIndex];
   const isLastExercise = exerciseIndex === exercises.length - 1;
 
-  const { typed, onChange, reset, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } = useTypingSession(
+  const { typed, onChange, reset, fixFirstMistake, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } = useTypingSession(
     exercise.target,
     (r) => {
       onLevelComplete(lessonId, exerciseIndex);
@@ -192,7 +192,11 @@ export function LessonScreen({
       </div>
       {liveErrors > 0 && typed.length >= exercise.target.length && (
         <p className="text-center text-xs mb-4" style={{ color: "var(--color-clay)" }}>
-          There's a mistake hiding in what you've typed — backspace to fix it, or hit "Start over".
+          There's a mistake hiding in what you've typed.{" "}
+          <button onClick={fixFirstMistake} className="font-bold underline">
+            Erase back to it
+          </button>{" "}
+          and retype from there, or hit "Start over".
         </p>
       )}
 

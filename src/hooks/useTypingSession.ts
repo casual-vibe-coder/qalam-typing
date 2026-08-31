@@ -85,12 +85,25 @@ export function useTypingSession(target: string, onComplete: (result: TypingSess
     });
   }, [target, typed]);
 
+  // Typing is append/backspace-only, so an earlier mistake that got typed
+  // past (rather than backspaced right away) can only be fixed by erasing
+  // everything after it too — not obvious, and tedious to do character by
+  // character. This jumps straight to just before the first still-wrong
+  // character instead of making someone count backspaces.
+  const fixFirstMistake = useCallback(() => {
+    const firstBad = charStatuses.findIndex((s) => s === "incorrect");
+    if (firstBad === -1) return;
+    prevLenRef.current = firstBad;
+    setTyped(target.slice(0, firstBad));
+  }, [charStatuses, target]);
+
   const progressPct = target.length === 0 ? 0 : Math.round((typed.length / target.length) * 100);
 
   return {
     typed,
     onChange,
     reset,
+    fixFirstMistake,
     charStatuses,
     progressPct,
     isDone: finishedAt !== null,

@@ -112,10 +112,8 @@ function PracticeSession({
   onNeedKeyboardHelp: () => void;
 }) {
   const [result, setResult] = useState<TypingSessionResult | null>(null);
-  const { typed, onChange, reset, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } = useTypingSession(
-    item.ar,
-    (r) => setResult(r)
-  );
+  const { typed, onChange, reset, fixFirstMistake, charStatuses, progressPct, liveErrors, wrongLanguageSuspected } =
+    useTypingSession(item.ar, (r) => setResult(r));
 
   const translationBlock = useMemo(
     () => item.translations.map((t, i) => <p key={i} className="mb-2 last:mb-0">{t}</p>),
@@ -160,7 +158,11 @@ function PracticeSession({
           </div>
           {liveErrors > 0 && typed.length >= item.ar.length && (
             <p className="text-center text-xs mb-4" style={{ color: "var(--color-clay)" }}>
-              There's a mistake hiding in what you've typed — backspace to fix it, or hit "Start over".
+              There's a mistake hiding in what you've typed.{" "}
+              <button onClick={fixFirstMistake} className="font-bold underline">
+                Erase back to it
+              </button>{" "}
+              and retype from there, or hit "Start over".
             </p>
           )}
           {wrongLanguageSuspected && <LanguageWarningBanner onNeedHelp={onNeedKeyboardHelp} />}
