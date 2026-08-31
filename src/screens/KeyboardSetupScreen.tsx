@@ -65,7 +65,7 @@ export function KeyboardSetupScreen({ onBack }: Props) {
 
       <div
         className="rounded-xl p-4 text-sm mb-8"
-        style={{ background: "rgba(182,84,58,0.1)", color: "var(--color-clay)" }}
+        style={{ background: "rgba(220,53,69,0.1)", color: "var(--color-clay)" }}
       >
         <strong>Important:</strong> some operating systems offer more than one "Arabic" keyboard, and they
         put letters and vowel marks on completely different keys from each other. This course is built on the
@@ -83,7 +83,7 @@ export function KeyboardSetupScreen({ onBack }: Props) {
             {g.warning && (
               <div
                 className="rounded-lg p-3 text-xs mb-3"
-                style={{ background: "rgba(182,84,58,0.1)", color: "var(--color-clay)" }}
+                style={{ background: "rgba(220,53,69,0.1)", color: "var(--color-clay)" }}
               >
                 ⚠️ {g.warning}
               </div>

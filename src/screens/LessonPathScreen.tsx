@@ -80,7 +80,7 @@ export function LessonPathScreen({
       <button
         onClick={onOpenPractice}
         className="w-full text-left rounded-2xl p-5 mb-3 border-2 transition-transform hover:scale-[1.02]"
-        style={{ borderColor: "var(--color-gold)", background: "linear-gradient(135deg,#fff,#fdf6e3)" }}
+        style={{ borderColor: "var(--color-gold)", background: "linear-gradient(135deg,#fff,#fdf3df)" }}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -96,7 +96,7 @@ export function LessonPathScreen({
       <button
         onClick={onOpenLeaderboard}
         className="w-full text-left rounded-2xl p-5 mb-8 border-2 transition-transform hover:scale-[1.02]"
-        style={{ borderColor: "var(--color-nur)", background: "linear-gradient(135deg,#fff,#eef7f2)" }}
+        style={{ borderColor: "var(--color-nur)", background: "linear-gradient(135deg,#fff,#eaf1ff)" }}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -135,8 +135,8 @@ export function LessonPathScreen({
                 }`}
                 style={{
                   background: result ? "var(--color-nur)" : unlocked ? "var(--color-gold)" : "var(--color-parchment-dim)",
-                  color: result || unlocked ? "#fff" : "#a89f8a",
-                  boxShadow: isNext ? "0 0 0 5px rgba(201,154,59,0.25)" : "none",
+                  color: result || unlocked ? "#fff" : "#9aa0ad",
+                  boxShadow: isNext ? "0 0 0 5px rgba(227,164,25,0.25)" : "none",
                 }}
               >
                 {result ? "✓" : !unlocked ? "🔒" : lesson.stage === "mastery" ? "📖" : lesson.subtitle.split(" ")[0]}

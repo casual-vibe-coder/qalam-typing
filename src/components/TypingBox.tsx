@@ -38,6 +38,7 @@ function buildSegments(target: string, statuses: CharStatus[]): Segment[] {
 
 export function TypingBox({ target, typed, statuses, onChange, autoFocus = true }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const isComposingRef = useRef(false);
   const segments = useMemo(() => buildSegments(target, statuses), [target, statuses]);
   const [isFocused, setIsFocused] = useState(autoFocus);
 
@@ -60,13 +61,13 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
                 ? "var(--color-clay)"
                 : seg.status === "current"
                   ? "var(--color-ink)"
-                  : "#c9c2ae";
+                  : "#c7cad3";
           return (
             <span
               key={i}
               style={{
                 color,
-                background: seg.status === "incorrect" ? "rgba(182,84,58,0.12)" : "transparent",
+                background: seg.status === "incorrect" ? "rgba(220,53,69,0.12)" : "transparent",
                 borderBottom: seg.status === "current" ? "3px solid var(--color-gold)" : "3px solid transparent",
               }}
             >
@@ -83,7 +84,7 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
           type="button"
           onClick={() => inputRef.current?.focus()}
           className="absolute inset-0 w-full h-full flex items-center justify-center gap-2 rounded-2xl font-bold text-sm animate-pulse"
-          style={{ background: "rgba(23,37,31,0.55)", color: "#fff" }}
+          style={{ background: "rgba(11,14,20,0.55)", color: "#fff" }}
         >
           👆 Tap here to start typing
         </button>
@@ -93,7 +94,27 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
         type="text"
         dir="rtl"
         value={typed}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          // Some Arabic keyboard layouts (notably ones that compose hamza
+          // seats via dead-key sequences) hold keystrokes in the browser's
+          // native IME composition buffer. Because this input is fully
+          // controlled, re-rendering with `value={typed}` mid-composition
+          // resets the DOM node and cancels that native preview — the
+          // composition then never resolves until something (a space)
+          // forces it to commit, which looks like "needs a space after
+          // every letter". Skip pushing state updates while composing so
+          // the browser's own buffer is left alone; onCompositionEnd
+          // flushes the real value once it settles.
+          if (isComposingRef.current) return;
+          onChange(e.target.value);
+        }}
+        onCompositionStart={() => {
+          isComposingRef.current = true;
+        }}
+        onCompositionEnd={(e) => {
+          isComposingRef.current = false;
+          onChange(e.currentTarget.value);
+        }}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         autoCapitalize="off"
