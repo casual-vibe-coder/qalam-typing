@@ -118,7 +118,7 @@ export function TypingBox({
       CSS.highlights.delete("qalam-incorrect");
       CSS.highlights.delete("qalam-current");
     };
-  }, [displayText, statuses]);
+  }, [displayText, statuses, hideText]);
 
   return (
     <div className="relative w-full" onClick={() => inputRef.current?.focus()}>
