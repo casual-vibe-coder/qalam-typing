@@ -8,6 +8,16 @@ interface Props {
   statuses: CharStatus[];
   onChange: (value: string) => void;
   autoFocus?: boolean;
+  // Memory mode: nothing about the target is shown while typing — not even
+  // per-character color — since revealing correctness live would let someone
+  // infer the text one mistake at a time instead of genuinely recalling it.
+  hideText?: boolean;
+  // What to actually render, if different from `target` — e.g. authentic
+  // Uthmani mushaf spelling for reading, while `target`/`typed`/`statuses`
+  // compare against a normalized, actually-typable string. MUST be the same
+  // length as `target`, character-for-character, since `statuses` is indexed
+  // against `target` and those same indices get reapplied here.
+  renderText?: string;
 }
 
 const HAS_HIGHLIGHT_API =
@@ -59,13 +69,22 @@ function colorFor(status: CharStatus): string {
   }
 }
 
-export function TypingBox({ target, typed, statuses, onChange, autoFocus = true }: Props) {
+export function TypingBox({
+  target,
+  typed,
+  statuses,
+  onChange,
+  autoFocus = true,
+  hideText = false,
+  renderText,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
   const [isFocused, setIsFocused] = useState(autoFocus);
-  const displayText = useMemo(() => toArabicIndicDigits(target), [target]);
-  const segments = useMemo(() => (HAS_HIGHLIGHT_API ? [] : buildSegments(target, statuses)), [target, statuses]);
+  const shown = renderText ?? target;
+  const displayText = useMemo(() => toArabicIndicDigits(shown), [shown]);
+  const segments = useMemo(() => (HAS_HIGHLIGHT_API ? [] : buildSegments(shown, statuses)), [shown, statuses]);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
@@ -77,7 +96,7 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
   // Arabic letters keep joining correctly across every status boundary, no
   // matter which character you're currently on.
   useLayoutEffect(() => {
-    if (!HAS_HIGHLIGHT_API) return;
+    if (!HAS_HIGHLIGHT_API || hideText) return;
     const node = textRef.current?.firstChild;
     if (!node || node.nodeType !== Node.TEXT_NODE) return;
 
@@ -109,20 +128,26 @@ export function TypingBox({ target, typed, statuses, onChange, autoFocus = true 
         className="font-arabic text-3xl md:text-4xl leading-relaxed bg-white border-2 rounded-2xl px-6 py-8 cursor-text break-words"
         style={{ borderColor: isFocused ? "var(--color-parchment-dim)" : "var(--color-gold)", color: "#c7cad3" }}
       >
-        {HAS_HIGHLIGHT_API
-          ? displayText
-          : segments.map((seg, i) => (
-              <span
-                key={i}
-                style={{
-                  color: colorFor(seg.status),
-                  background: seg.status === "incorrect" ? "rgba(220,53,69,0.12)" : "transparent",
-                  borderBottom: seg.status === "current" ? "3px solid var(--color-gold)" : "3px solid transparent",
-                }}
-              >
-                {toArabicIndicDigits(seg.text)}
-              </span>
-            ))}
+        {hideText ? (
+          <span className="font-sans text-base opacity-50" style={{ color: "var(--color-ink)" }}>
+            ✍️ Written from memory — hidden until you check it
+          </span>
+        ) : HAS_HIGHLIGHT_API ? (
+          displayText
+        ) : (
+          segments.map((seg, i) => (
+            <span
+              key={i}
+              style={{
+                color: colorFor(seg.status),
+                background: seg.status === "incorrect" ? "rgba(220,53,69,0.12)" : "transparent",
+                borderBottom: seg.status === "current" ? "3px solid var(--color-gold)" : "3px solid transparent",
+              }}
+            >
+              {toArabicIndicDigits(seg.text)}
+            </span>
+          ))
+        )}
       </div>
       {!isFocused && (
         <button

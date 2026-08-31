@@ -8,6 +8,16 @@ export function stripHarakat(text: string): string {
   return text.replace(HARAKAT, "");
 }
 
+// Authentic Uthmani mushaf text (see data source in screens/PracticeScreen.tsx's
+// Qur'an-by-page fetch) uses a couple of marks with no key on any real Arabic
+// keyboard: alif wasla (ٱ) and the superscript/"dagger" alif (ٰ) that spells a
+// long vowel without a full letter (e.g. هَٰذَا "this"). Both are, in practice,
+// just typed as a plain alif — so normalize them for the typing TARGET only;
+// the authentic Uthmani spelling still stays on screen for reading/reference.
+export function toTypableArabic(text: string): string {
+  return text.replace(/[ٱٰ]/g, "ا");
+}
+
 /** True for a single combining diacritic (harakah, shaddah, sukoon, tanween) — false for a base letter. */
 export function isHarakah(ch: string): boolean {
   return /[ً-ْٰ]/.test(ch);
