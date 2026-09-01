@@ -106,7 +106,19 @@ export function PracticeScreen({ onExit, onNeedKeyboardHelp, onCharsTyped, onPra
                   onClick={() =>
                     setSelected({
                       kind: "quran-surah",
-                      ar: s.ayahs.map((a) => a.ar).join("   "),
+                      // A single space between ayahs, not three literal space
+                      // characters — comparison here is strict per keystroke,
+                      // so three spaces meant three separate spacebar presses
+                      // to clear one ayah boundary. Getting even one of those
+                      // wrong (very easy — nothing visually distinguishes
+                      // "1 space typed" from "3 spaces needed") silently
+                      // misaligned every character after it, since a mismatched
+                      // space has no glyph to paint red — exactly the "9 errors
+                      // but I don't see any" report. renderAr keeps the
+                      // newline-per-ayah look on screen without requiring it
+                      // to be typed as three separate keystrokes.
+                      ar: s.ayahs.map((a) => a.ar).join(" "),
+                      renderAr: s.ayahs.map((a) => a.ar).join("\n"),
                       translations: s.ayahs.map((a) => a.en),
                       sub: `${s.name} (${s.ayahs.length} ayahs)`,
                     })

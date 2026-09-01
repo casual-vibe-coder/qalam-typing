@@ -125,7 +125,7 @@ export function TypingBox({
       <div
         ref={textRef}
         dir="rtl"
-        className="font-arabic text-3xl md:text-4xl leading-relaxed bg-white border-2 rounded-2xl px-6 py-8 cursor-text break-words"
+        className="font-arabic text-3xl md:text-4xl leading-relaxed bg-white border-2 rounded-2xl px-6 py-8 cursor-text break-words whitespace-pre-line"
         style={{ borderColor: isFocused ? "var(--color-parchment-dim)" : "var(--color-gold)", color: "#c7cad3" }}
       >
         {hideText ? (
