@@ -144,7 +144,19 @@ function buildMasteryExercises(lessonId: string): Exercise[] {
   const labels = ["Level 1 · One hadith", "Level 2 · Two hadiths", "Level 3 · Full passage"];
   return slices.map((indices, i) => ({
     label: labels[i] ?? `Level ${i + 1}`,
-    target: indices.map((idx) => HADITHS[idx % HADITHS.length].ar).join("   "),
+    // A single space between concatenated hadiths, not three literal space
+    // characters. Comparison is strict per keystroke (see useTypingSession),
+    // so three spaces meant three separate spacebar presses to cross one
+    // hadith boundary — undershoot that by even one (nothing on screen hints
+    // three are needed) and every character after it compares one position
+    // out of alignment for the rest of the exercise. That reads as exactly
+    // "the key it's asking for doesn't match what's on screen, and pressing
+    // the right one doesn't work" — the virtual keyboard and text ARE in
+    // sync (both index the same `target` string), but `target` itself no
+    // longer matches what the person believes they're typing once the
+    // silent misalignment starts. Levels 2-3 concatenate multiple hadiths,
+    // so this could recur at every boundary within the same exercise.
+    target: indices.map((idx) => HADITHS[idx % HADITHS.length].ar).join(" "),
   }));
 }
 
